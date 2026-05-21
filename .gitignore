@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+Thumbs.db
+
+# Node (reference_app/, tools/)
+node_modules/
+*.log
+.vite/
+dist/
+.cache/
+
+# iOS — Xcode build artifacts
+ios/build/
+ios/DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
+**/.swiftpm/
+*.swp
+*.swo
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Android — Gradle build artifacts
+.gradle/
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/captures/
+
+# JetBrains / Android Studio
+.idea/
+*.iml
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Notes:
+# - shared/generated/ is checked in so things work without running codegen.
+#   Add it here if you wire codegen into Xcode/Gradle build phases later.
+# - GoogleService-Info.plist and google-services.json are NOT secrets per
+#   Firebase guidance — keep them committed. Restrict via Firebase rules.

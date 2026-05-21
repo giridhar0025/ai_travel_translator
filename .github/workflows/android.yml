@@ -1,0 +1,35 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'shared/**'
+      - 'tools/gen-tokens.mjs'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'shared/**'
+      - 'tools/gen-tokens.mjs'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate design tokens
+        run: node tools/gen-tokens.mjs
+
+      - name: Build & test
+        working-directory: android
+        run: ./gradlew testDebug --stacktrace

@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json.schemastore.org/base",
+  "_comment": "Source of truth for design tokens shared between iOS and Android. Extracted from reference_app/src/styles/{theme,animations,tailwind,fonts}.css and reference_app/src/app/components/. Compile to ios/.../DesignSystem/Tokens.swift and android/.../designsystem/Tokens.kt.",
+  "_excluded": {
+    "_comment": "Tokens present in theme.css but unused by any screen — shadcn boilerplate. Documented here for traceability; do NOT port.",
+    "chart": "--chart-1..5 (oklch). Not referenced by any component.",
+    "sidebar": "--sidebar, --sidebar-foreground, --sidebar-primary, --sidebar-primary-foreground, --sidebar-accent, --sidebar-accent-foreground, --sidebar-border, --sidebar-ring. Not referenced by any component."
+  },
+  "color": {
+    "brand": {
+      "coral":         { "value": "#FF6B4A", "comment": "Primary brand color (--primary, --primary-coral, --ring)" },
+      "coralDark":     { "value": "#E85533", "comment": "Pressed/hover state of primary (--primary-dark, --secondary-foreground)" },
+      "coralLight":    { "value": "#FFF0ED", "comment": "Tinted backgrounds, hover states (--primary-light, --secondary)" },
+      "amber":         { "value": "#F59E0B", "comment": "Accent — favorite stars, highlights (--accent-amber, --accent)" },
+      "successGreen":  { "value": "#22C55E", "comment": "Success states, confirmations (--success-green)" },
+      "destructive":   { "value": "#D4183D", "comment": "Logout, delete, error (--destructive)" }
+    },
+    "semantic": {
+      "_comment": "Paired (background, foreground) tokens — match the shadcn role pattern from theme.css.",
+      "primary":              { "value": "#FF6B4A" },
+      "primaryForeground":    { "value": "#FFFFFF", "comment": "White text on coral buttons" },
+      "secondary":            { "value": "#FFF0ED" },
+      "secondaryForeground":  { "value": "#E85533", "comment": "Coral-dark text on light-coral surfaces" },
+      "accent":               { "value": "#F59E0B" },
+      "accentForeground":     { "value": "#FFFFFF" },
+      "destructive":          { "value": "#D4183D" },
+      "destructiveForeground":{ "value": "#FFFFFF" },
+      "card":                 { "value": "#FFFFFF" },
+      "cardForeground":       { "value": "#111827" },
+      "popover":              { "value": "#FFFFFF" },
+      "popoverForeground":    { "value": "#111827" },
+      "muted":                { "value": "#F8FAFC" },
+      "mutedForeground":      { "value": "#6B7280" },
+      "ring":                 { "value": "#FF6B4A", "comment": "Focus ring" }
+    },
+    "neutral": {
+      "background":    { "value": "#F8FAFC", "comment": "--background, --light-bg" },
+      "foreground":    { "value": "#111827", "comment": "--foreground, --text-primary" },
+      "textSecondary": { "value": "#6B7280", "comment": "--text-secondary" },
+      "input":         { "value": "transparent", "comment": "--input (border/background of bare input)" },
+      "inputBg":       { "value": "#F3F3F5", "comment": "--input-background (filled input surface)" },
+      "switchBg":      { "value": "#CBCED4", "comment": "--switch-background (off state)" },
+      "border":        { "value": "rgba(0,0,0,0.10)", "comment": "--border" }
+    },
+    "category": {
+      "_comment": "From quick-phrases-screen.tsx — each category uses Tailwind 'bg-{c}-100 text-{c}-600' pairs. Resolved to Tailwind v4 default palette hex values.",
+      "restaurants": { "bg": "#FFEDD5", "fg": "#EA580C", "_classes": "bg-orange-100 text-orange-600" },
+      "directions":  { "bg": "#DBEAFE", "fg": "#2563EB", "_classes": "bg-blue-100 text-blue-600" },
+      "transport":   { "bg": "#DCFCE7", "fg": "#16A34A", "_classes": "bg-green-100 text-green-600" },
+      "shopping":    { "bg": "#F3E8FF", "fg": "#9333EA", "_classes": "bg-purple-100 text-purple-600" },
+      "emergencies": { "bg": "#FEE2E2", "fg": "#DC2626", "_classes": "bg-red-100 text-red-600" }
+    },
+    "darkMode": {
+      "_comment": "Source values are oklch() in theme.css. Converted to sRGB hex for native consumption. Re-verify visually on device when wiring dark mode in Phase 10.",
+      "background":          { "value": "#252525", "_oklch": "oklch(0.145 0 0)" },
+      "foreground":          { "value": "#FAFAFA", "_oklch": "oklch(0.985 0 0)" },
+      "card":                { "value": "#252525", "_oklch": "oklch(0.145 0 0)" },
+      "cardForeground":      { "value": "#FAFAFA", "_oklch": "oklch(0.985 0 0)" },
+      "popover":             { "value": "#252525", "_oklch": "oklch(0.145 0 0)" },
+      "popoverForeground":   { "value": "#FAFAFA", "_oklch": "oklch(0.985 0 0)" },
+      "primary":             { "value": "#FAFAFA", "_oklch": "oklch(0.985 0 0)", "_note": "Inverted in dark mode per shadcn defaults" },
+      "primaryForeground":   { "value": "#343434", "_oklch": "oklch(0.205 0 0)" },
+      "secondary":           { "value": "#444444", "_oklch": "oklch(0.269 0 0)" },
+      "secondaryForeground": { "value": "#FAFAFA", "_oklch": "oklch(0.985 0 0)" },
+      "muted":               { "value": "#444444", "_oklch": "oklch(0.269 0 0)" },
+      "mutedForeground":     { "value": "#B5B5B5", "_oklch": "oklch(0.708 0 0)" },
+      "accent":              { "value": "#444444", "_oklch": "oklch(0.269 0 0)" },
+      "accentForeground":    { "value": "#FAFAFA", "_oklch": "oklch(0.985 0 0)" },
+      "destructive":         { "value": "#7F1D1D", "_oklch": "oklch(0.396 0.141 25.723)" },
+      "destructiveForeground":{ "value": "#EF4444","_oklch": "oklch(0.637 0.237 25.331)" },
+      "border":              { "value": "#444444", "_oklch": "oklch(0.269 0 0)" },
+      "input":               { "value": "#444444", "_oklch": "oklch(0.269 0 0)" },
+      "ring":                { "value": "#707070", "_oklch": "oklch(0.439 0 0)" }
+    }
+  },
+  "radius": {
+    "_comment": "From theme.css @theme inline (radius derived from --radius: 0.75rem = 12px) plus FEATURES_AND_FLOWS.md §9.1.",
+    "sm":    { "value": 8,  "unit": "px" },
+    "md":    { "value": 10, "unit": "px" },
+    "lg":    { "value": 12, "unit": "px", "comment": "Default — buttons, inputs, standard corners" },
+    "xl":    { "value": 16, "unit": "px", "comment": "Cards" },
+    "modal": { "value": 24, "unit": "px", "comment": "Bottom sheets, dialogs" }
+  },
+  "spacing": {
+    "_grid": "4px base grid",
+    "1":  { "value": 4 },
+    "2":  { "value": 8 },
+    "3":  { "value": 12 },
+    "4":  { "value": 16 },
+    "5":  { "value": 20 },
+    "6":  { "value": 24 },
+    "8":  { "value": 32 },
+    "10": { "value": 40 }
+  },
+  "typography": {
+    "_comment": "fonts.css is empty in the prototype — defaults to system font stack. Native uses SF Pro (iOS) and Roboto (Android).",
+    "fontWeightNormal": 400,
+    "fontWeightMedium": 500,
+    "rootFontSize":     { "value": 16, "unit": "px", "comment": "html font-size" },
+    "fontSize": {
+      "xs":   { "value": 12, "unit": "px" },
+      "sm":   { "value": 14, "unit": "px" },
+      "base": { "value": 16, "unit": "px", "comment": "h4, label, button, input default" },
+      "lg":   { "value": 18, "unit": "px", "comment": "h3, translated text in bubbles" },
+      "xl":   { "value": 20, "unit": "px", "comment": "h2" },
+      "2xl":  { "value": 24, "unit": "px", "comment": "h1" }
+    },
+    "lineHeight": {
+      "default": 1.5
+    }
+  },
+  "motion": {
+    "_comment": "From animations.css. Use as defaults for native animation curves and durations.",
+    "easing": {
+      "standard": { "value": "cubic-bezier(0.4, 0, 0.2, 1)", "comment": "Default transition + pulse decay" },
+      "easeOut":  { "value": "cubic-bezier(0, 0, 0.2, 1)",   "comment": "Ping animation" },
+      "pulse":    { "value": "cubic-bezier(0.4, 0, 0.6, 1)", "comment": "Recording-mic pulse" }
+    },
+    "duration": {
+      "transition": { "value": 200, "unit": "ms", "comment": "Default UI transition" },
+      "fadeIn":     { "value": 600, "unit": "ms", "comment": "Screen fade-in" },
+      "pulse":      { "value": 2000,"unit": "ms", "comment": "Recording mic pulse cycle" },
+      "ping":       { "value": 1500,"unit": "ms", "comment": "Voice-input ping ring" }
+    },
+    "pressScale": {
+      "primary":   { "value": 0.98, "comment": "active:scale-[0.98] — buttons, cards" },
+      "emphatic":  { "value": 0.95, "comment": "active:scale-95 — secondary touch feedback" }
+    },
+    "fadeIn": {
+      "translateY": { "value": 10, "unit": "px", "comment": "Initial offset before fadeIn animation" }
+    }
+  },
+  "touchTarget": {
+    "minIos":     { "value": 44, "unit": "pt" },
+    "minAndroid": { "value": 48, "unit": "dp" }
+  },
+  "safeArea": {
+    "_comment": "Web uses env(safe-area-inset-bottom). Native: use platform safe-area APIs (UIView.safeAreaInsets / WindowInsets). No literal token to port."
+  },
+  "languages": {
+    "supported": [
+      { "code": "en", "name": "English", "flag": "🇬🇧" },
+      { "code": "hi", "name": "Hindi",   "flag": "🇮🇳" },
+      { "code": "te", "name": "Telugu",  "flag": "🇮🇳", "_note": "Pending §6 decision — not in ML Kit's supported list" },
+      { "code": "th", "name": "Thai",    "flag": "🇹🇭" }
+    ]
+  },
+  "context": {
+    "modes": [
+      { "id": "formal",  "label": "Formal Tone",  "emoji": "👔" },
+      { "id": "casual",  "label": "Casual Tone",  "emoji": "😊", "default": true },
+      { "id": "tourist", "label": "Tourist Mode", "emoji": "🧳" }
+    ]
+  },
+  "playbackSpeed": {
+    "options": [
+      { "id": "normal",   "label": "Normal",    "rate": 1.0 },
+      { "id": "slow",     "label": "Slow",      "rate": 0.6 },
+      { "id": "verySlow", "label": "Very Slow", "rate": 0.4 }
+    ]
+  }
+}
