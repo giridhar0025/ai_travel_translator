@@ -3,22 +3,18 @@ package com.divami.traveltranslator
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
-import com.divami.traveltranslator.designsystem.ComponentGallery
+import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.divami.traveltranslator.designsystem.TravelTranslatorTheme
+import com.divami.traveltranslator.nav.AppNavHost
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            TravelTranslatorTheme { ComponentGallery() }
+            TravelTranslatorTheme { AppNavHost() }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewGallery() {
-    TravelTranslatorTheme { ComponentGallery() }
 }

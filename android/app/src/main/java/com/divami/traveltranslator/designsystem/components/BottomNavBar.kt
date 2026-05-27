@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -29,6 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.designsystem.AppTheme
@@ -74,8 +79,15 @@ fun BottomNavBar(
                 Column(
                     modifier = Modifier
                         .weight(1f)
+                        .semantics {
+                            this.selected = active
+                            this.contentDescription = "${tab.label} tab"
+                        }
                         .clickable(onClick = { onSelect(tab) })
-                        .defaultMinSize(minHeight = DesignTokens.TouchTarget.Min)
+                        .defaultMinSize(
+                            minWidth = 48.dp,
+                            minHeight = DesignTokens.TouchTarget.Min,
+                        )
                         .padding(vertical = DesignTokens.Spacing.S2),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
@@ -86,11 +98,21 @@ fun BottomNavBar(
                         tint = if (active) colors.primary else colors.textSecondary,
                         modifier = Modifier.size(24.dp),
                     )
+                    // Subtle 4dp selection pill beneath the icon; invisible when not active.
+                    Box(
+                        modifier = Modifier
+                            .width(32.dp)
+                            .height(4.dp)
+                            .background(
+                                color = if (active) colors.primary else androidx.compose.ui.graphics.Color.Transparent,
+                                shape = RoundedCornerShape(2.dp),
+                            ),
+                    )
                     Text(
                         text = tab.label,
                         color = if (active) colors.primary else colors.textSecondary,
                         fontSize = DesignTokens.Typography.Size.Xs,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
                     )
                 }
             }

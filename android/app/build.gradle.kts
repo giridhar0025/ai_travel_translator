@@ -1,7 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+// BACKEND_BASE_URL flows local.properties → BuildConfig.BACKEND_BASE_URL.
+// Default targets the emulator host loopback (10.0.2.2) so a fresh checkout
+// works against `uvicorn` on the dev machine. Override in local.properties
+// to point at the Railway URL — see backend/DEPLOY.md.
+val backendBaseUrl: String = run {
+    val props = Properties()
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { props.load(it) }
+    props.getProperty("BACKEND_BASE_URL") ?: "http://10.0.2.2:8000"
 }
 
 android {
@@ -15,6 +29,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
     }
 
     buildTypes {
@@ -32,7 +47,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -45,6 +63,11 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.ui.text.google.fonts)
     debugImplementation(libs.androidx.ui.tooling)
 }
 

@@ -41,6 +41,8 @@ fun CoralButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     leadingIcon: ImageVector? = null,
+    trailingIcon: ImageVector? = null,
+    whiteOnCoral: Boolean = false,
 ) {
     val colors = AppTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
@@ -53,18 +55,23 @@ fun CoralButton(
     val bg: Color
     val fg: Color
     val border: BorderStroke?
-    when (variant) {
-        CoralButtonVariant.Primary -> {
+    when {
+        whiteOnCoral -> {
+            bg = Color.White
+            fg = colors.primary
+            border = null
+        }
+        variant == CoralButtonVariant.Primary -> {
             bg = if (enabled) colors.primary else colors.inputBg
             fg = if (enabled) colors.onPrimary else colors.textSecondary
             border = if (enabled) null else BorderStroke(1.dp, colors.border)
         }
-        CoralButtonVariant.Secondary -> {
+        variant == CoralButtonVariant.Secondary -> {
             bg = colors.card
             fg = if (enabled) colors.foreground else colors.textSecondary
             border = BorderStroke(1.dp, colors.border)
         }
-        CoralButtonVariant.Text -> {
+        else -> { // Text
             bg = Color.Transparent
             fg = colors.textSecondary
             border = null
@@ -72,8 +79,7 @@ fun CoralButton(
     }
 
     val shape = RoundedCornerShape(DesignTokens.Radius.Lg)
-    var rowModifier = modifier
-        .scale(scale)
+    var rowModifier = modifier.scale(scale)
     if (variant != CoralButtonVariant.Text) {
         rowModifier = rowModifier.fillMaxWidth()
     }
@@ -115,5 +121,8 @@ fun CoralButton(
             fontSize = DesignTokens.Typography.Size.Base,
             fontWeight = FontWeight.Medium,
         )
+        if (!isLoading && trailingIcon != null) {
+            Icon(imageVector = trailingIcon, contentDescription = null, tint = fg)
+        }
     }
 }

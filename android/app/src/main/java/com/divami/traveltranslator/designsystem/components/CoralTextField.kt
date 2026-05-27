@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Visibility
@@ -29,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.ImeAction
@@ -50,6 +53,17 @@ fun CoralTextField(
     label: String? = null,
     kind: CoralTextFieldKind = CoralTextFieldKind.Text,
     leadingIcon: ImageVector? = null,
+    // #14 — IME action chaining: callers can pass custom options/actions/focusRequester.
+    keyboardOptions: KeyboardOptions = KeyboardOptions(
+        keyboardType = when (kind) {
+            CoralTextFieldKind.Email    -> KeyboardType.Email
+            CoralTextFieldKind.Password -> KeyboardType.Password
+            CoralTextFieldKind.Text    -> KeyboardType.Text
+        },
+        imeAction = ImeAction.Next,
+    ),
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    focusRequester: FocusRequester? = null,
 ) {
     val colors = AppTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
@@ -61,11 +75,15 @@ fun CoralTextField(
         if (kind == CoralTextFieldKind.Password && !passwordVisible) PasswordVisualTransformation()
         else VisualTransformation.None
 
-    val keyboardType = when (kind) {
-        CoralTextFieldKind.Email -> KeyboardType.Email
-        CoralTextFieldKind.Password -> KeyboardType.Password
-        CoralTextFieldKind.Text -> KeyboardType.Text
-    }
+    // Merge the caller's keyboardType into the effective options so the kind-default is
+    // preserved when the caller only overrides imeAction.
+    val effectiveKeyboardOptions = keyboardOptions.copy(
+        keyboardType = keyboardOptions.keyboardType.let { supplied ->
+            if (supplied == KeyboardType.Text && kind == CoralTextFieldKind.Email) KeyboardType.Email
+            else if (supplied == KeyboardType.Text && kind == CoralTextFieldKind.Password) KeyboardType.Password
+            else supplied
+        },
+    )
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2)) {
         if (label != null) {
@@ -99,7 +117,8 @@ fun CoralTextField(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .weight(1f)
-                    .defaultMinSize(minHeight = 24.dp),
+                    .defaultMinSize(minHeight = 24.dp)
+                    .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
                 singleLine = true,
                 interactionSource = interactionSource,
                 visualTransformation = visualTransformation,
@@ -108,10 +127,8 @@ fun CoralTextField(
                     color = colors.foreground,
                     fontSize = DesignTokens.Typography.Size.Base,
                 ),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = keyboardType,
-                    imeAction = ImeAction.Next,
-                ),
+                keyboardOptions = effectiveKeyboardOptions,
+                keyboardActions = keyboardActions,
                 decorationBox = { innerTextField ->
                     if (value.isEmpty()) {
                         Text(
@@ -123,6 +140,7 @@ fun CoralTextField(
                     innerTextField()
                 },
             )
+            // #15 — Password show/hide eye toggle.
             if (kind == CoralTextFieldKind.Password) {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(

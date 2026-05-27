@@ -12,7 +12,11 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.googlefonts.Font as GoogleFontFont
+import com.divami.traveltranslator.R
 
 @Immutable
 data class AppColors(
@@ -33,6 +37,21 @@ data class AppColors(
     val success: Color,
     val onPrimary: Color,
     val ring: Color,
+)
+
+private val GoogleFontsProvider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs,
+)
+
+private val InterGoogleFont = GoogleFont("Inter")
+
+private val InterFontFamily = FontFamily(
+    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.Normal),
+    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.Medium),
+    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.SemiBold),
+    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.Bold),
 )
 
 private val LightAppColors = AppColors(
@@ -71,13 +90,13 @@ private val DarkAppColors = LightAppColors.copy(
 val LocalAppColors = staticCompositionLocalOf { LightAppColors }
 
 private val AppTypography = Typography(
-    displayLarge   = TextStyle(fontSize = DesignTokens.Typography.Size.Xxl, fontWeight = FontWeight.SemiBold),
-    headlineLarge  = TextStyle(fontSize = DesignTokens.Typography.Size.Xl,  fontWeight = FontWeight.SemiBold),
-    titleLarge     = TextStyle(fontSize = DesignTokens.Typography.Size.Lg,  fontWeight = FontWeight.Medium),
-    bodyLarge      = TextStyle(fontSize = DesignTokens.Typography.Size.Base, fontWeight = FontWeight.Normal),
-    bodyMedium     = TextStyle(fontSize = DesignTokens.Typography.Size.Sm,  fontWeight = FontWeight.Normal),
-    labelMedium    = TextStyle(fontSize = DesignTokens.Typography.Size.Sm,  fontWeight = FontWeight.Medium),
-    labelSmall     = TextStyle(fontSize = DesignTokens.Typography.Size.Xs,  fontWeight = FontWeight.Normal),
+    displayLarge   = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Xxl, fontWeight = FontWeight.SemiBold),
+    headlineLarge  = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Xl,  fontWeight = FontWeight.SemiBold),
+    titleLarge     = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Lg,  fontWeight = FontWeight.Medium),
+    bodyLarge      = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Base, fontWeight = FontWeight.Normal),
+    bodyMedium     = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Sm,  fontWeight = FontWeight.Normal),
+    labelMedium    = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Sm,  fontWeight = FontWeight.Medium),
+    labelSmall     = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Xs,  fontWeight = FontWeight.Normal),
 )
 
 private fun AppColors.toMaterialColorScheme(dark: Boolean) = if (dark) {
@@ -108,8 +127,12 @@ fun TravelTranslatorTheme(
         MaterialTheme(
             colorScheme = appColors.toMaterialColorScheme(darkTheme),
             typography = AppTypography,
-            content = content,
-        )
+        ) {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalTextStyle provides androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = InterFontFamily),
+                content = content,
+            )
+        }
     }
 }
 

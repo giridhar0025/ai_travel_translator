@@ -1,0 +1,84 @@
+[project]
+name = "travel-translator-backend"
+version = "0.1.0"
+description = "Backend API for Travel Translator AI"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "httpx[http2]>=0.28.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "firebase-admin>=6.6.0",
+    "python-jose[cryptography]>=3.3.0",
+    "python-multipart>=0.0.20",
+    "epitran>=1.25.1",
+    "librosa>=0.10.2",
+    "soundfile>=0.12.1",
+    "numpy>=1.26.0,<2.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "black>=24.10.0",
+    "mypy>=1.13.0",
+    "respx>=0.21.0",
+    "testcontainers[postgres]>=4.8.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
+ignore = ["E501"]  # line length is enforced by black
+
+[tool.ruff.lint.per-file-ignores]
+# ClientSideTtsRequired / UnsupportedLanguageError don't follow the *Error
+# convention because the leading word *is* the public 415 detail-code contract
+# clients match on. Renaming would be a breaking API change.
+"app/services/tts.py" = ["N818"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "alembic/versions"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.coverage.run]
+# `thread,greenlet` is required to trace async route handler bodies under
+# Starlette's TestClient threadpool dispatch — without it, every line after an
+# `await` in an async route shows as missed (false negative ~30% on routers).
+concurrency = ["thread", "greenlet"]
+source = ["app"]
+omit = ["app/__init__.py", "*/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+exclude = ["alembic/versions", "tests"]
