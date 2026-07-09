@@ -5,18 +5,27 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
-// BACKEND_BASE_URL flows local.properties → BuildConfig.BACKEND_BASE_URL.
-// Default targets the emulator host loopback (10.0.2.2) so a fresh checkout
-// works against `uvicorn` on the dev machine. Override in local.properties
-// to point at the Railway URL — see backend/DEPLOY.md.
-val backendBaseUrl: String = run {
-    val props = Properties()
+// All build-time config flows local.properties → BuildConfig. Firebase is
+// initialised at runtime from these fields (see TravelTranslatorApp), so the
+// google-services Gradle plugin — and a checked-in google-services.json — are
+// deliberately NOT required to build. A fresh checkout compiles and runs the
+// guest-auth path immediately; drop the four FIREBASE_* values into
+// local.properties to light up email/Google sign-in.
+val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { props.load(it) }
-    props.getProperty("BACKEND_BASE_URL") ?: "http://10.0.2.2:8000"
+    if (f.exists()) f.inputStream().use { load(it) }
 }
+fun prop(key: String, default: String = ""): String =
+    (localProps.getProperty(key) ?: System.getenv(key) ?: default)
+
+// BACKEND_BASE_URL — default targets the emulator host loopback (10.0.2.2) so a
+// fresh checkout works against `uvicorn` on the dev machine. Override in
+// local.properties to point at the Railway URL — see backend/DEPLOY.md.
+val backendBaseUrl: String = prop("BACKEND_BASE_URL", "http://10.0.2.2:8000/")
 
 android {
     namespace = "com.divami.traveltranslator"
@@ -30,6 +39,17 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
+
+        // Firebase config — sourced from local.properties (see the Firebase
+        // console → Project settings → your Android app). Empty by default;
+        // FirebaseAuthGateway treats blank values as "Firebase not configured"
+        // and only the guest path stays available.
+        buildConfigField("String", "FIREBASE_API_KEY", "\"${prop("FIREBASE_API_KEY")}\"")
+        buildConfigField("String", "FIREBASE_APP_ID", "\"${prop("FIREBASE_APP_ID")}\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${prop("FIREBASE_PROJECT_ID")}\"")
+        // OAuth 2.0 Web client ID (Firebase → Authentication → Google → Web SDK
+        // config). Required for the Credential Manager Google sign-in flow.
+        buildConfigField("String", "FIREBASE_WEB_CLIENT_ID", "\"${prop("FIREBASE_WEB_CLIENT_ID")}\"")
     }
 
     buildTypes {
@@ -68,7 +88,34 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.ui.text.google.fonts)
+
+    // Dependency injection
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor)
+
+    // Local persistence (auth token + preferences)
+    implementation(libs.androidx.datastore.preferences)
+
+    // Firebase auth + Google sign-in via Credential Manager
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     debugImplementation(libs.androidx.ui.tooling)
+
+    // Unit tests
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 // Token codegen — runs before compile

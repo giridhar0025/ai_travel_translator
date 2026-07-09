@@ -34,14 +34,14 @@ docker compose up -d db
 uv run alembic upgrade head
 
 # Run the API with auto-reload
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8123
 
 # In another terminal
-curl http://localhost:8000/health
+curl http://localhost:8123/health
 # → {"status":"ok"}
 ```
 
-OpenAPI docs at <http://localhost:8000/docs>.
+OpenAPI docs at <http://localhost:8123/docs>.
 
 ---
 
@@ -102,9 +102,9 @@ Pronunciation guides use [`epitran`](https://github.com/dmort27/epitran) (MIT).
 After `uv run uvicorn app.main:app`, mint a guest token and synthesize Hindi — verifies `chatterbox-turbo` is reachable via the HF→Replicate router. Requires `HF_API_TOKEN`.
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/guest | jq -r .token)
+TOKEN=$(curl -s -X POST http://localhost:8123/api/v1/auth/guest | jq -r .token)
 
-curl -s -X POST http://localhost:8000/api/v1/tts/synthesize \
+curl -s -X POST http://localhost:8123/api/v1/tts/synthesize \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"text":"नमस्ते, यह एक परीक्षण है।","language":"hi","speed":"normal"}' \

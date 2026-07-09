@@ -245,6 +245,7 @@ fun ChatScreen(
             AudioPlayer(
                 text = req.message.translatedText,
                 pronunciation = req.message.pronunciation,
+                languageCode = req.message.translatedLanguage.code,
                 initialSlow = req.slow,
                 initialPlay = req.slow,
             )

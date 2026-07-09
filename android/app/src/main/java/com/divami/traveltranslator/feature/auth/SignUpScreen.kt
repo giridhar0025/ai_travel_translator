@@ -23,10 +23,10 @@ import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -65,19 +65,22 @@ private fun passwordStrengthScore(password: String): Int {
 @Composable
 fun SignUpScreen(
     onBack: () -> Unit,
-    onSignUp: () -> Unit,
+    onAuthenticated: () -> Unit,
+    viewModel: AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val colors = AppTheme.colors
     val systemInsets = WindowInsets.systemBars.asPaddingValues()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val uiState by viewModel.state.collectAsState()
+
+    LaunchedAuthEffects(viewModel, context, onAuthenticated = onAuthenticated)
 
     // #11 — rememberSaveable for form state.
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    // #27 — isLoading on submit.
-    var submitting by rememberSaveable { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    val submitting = uiState.submitting
 
     // #20 — keyboard dismiss.
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -176,12 +179,7 @@ fun SignUpScreen(
                         onDone = {
                             if (formEnabled) {
                                 keyboardController?.hide()
-                                scope.launch {
-                                    submitting = true
-                                    delay(600)
-                                    submitting = false
-                                    onSignUp()
-                                }
+                                viewModel.signUpWithEmail(name, email, password)
                             }
                         },
                     ),
@@ -199,12 +197,7 @@ fun SignUpScreen(
                 text = "Create Account",
                 onClick = {
                     keyboardController?.hide()
-                    scope.launch {
-                        submitting = true
-                        delay(600)
-                        submitting = false
-                        onSignUp()
-                    }
+                    viewModel.signUpWithEmail(name, email, password)
                 },
                 enabled = formEnabled,
                 isLoading = submitting,

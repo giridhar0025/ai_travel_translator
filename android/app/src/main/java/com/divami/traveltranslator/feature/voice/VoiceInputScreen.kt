@@ -42,17 +42,14 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,47 +61,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 import com.divami.traveltranslator.designsystem.components.CoralButton
 import com.divami.traveltranslator.designsystem.components.CoralButtonVariant
 import com.divami.traveltranslator.designsystem.components.Waveform
-import kotlinx.coroutines.delay
-
-private val MockTranscripts = listOf(
-    "Hello, can you help me find a restaurant nearby?",
-    "How much does this cost?",
-    "Where is the nearest train station?",
-)
-private const val MockDelayMs = 2000L
 
 @Composable
 fun VoiceInputScreen(
     onBack: () -> Unit,
     onTranslate: (String) -> Unit,
+    languageCode: String? = null,
+    viewModel: VoiceViewModel = hiltViewModel(),
 ) {
     val colors = AppTheme.colors
     val context = LocalContext.current
     val insets = WindowInsets.systemBars.asPaddingValues()
+    val state by viewModel.state.collectAsState()
 
     val micGranted = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.RECORD_AUDIO,
     ) == PackageManager.PERMISSION_GRANTED
 
-    var isRecording by rememberSaveable { mutableStateOf(true) }
-    var transcript by rememberSaveable { mutableStateOf("") }
-    var attempt by rememberSaveable { mutableIntStateOf(0) }
-
-    BackHandler(onBack = onBack)
-
-    LaunchedEffect(isRecording, micGranted) {
-        if (isRecording && micGranted) {
-            delay(MockDelayMs)
-            transcript = MockTranscripts[attempt % MockTranscripts.size]
-            isRecording = false
-        }
+    // Start recording once when the screen opens with permission granted.
+    LaunchedEffect(micGranted) {
+        if (micGranted) viewModel.startRecording(languageCode)
     }
+
+    val dismiss = {
+        viewModel.cancel()
+        onBack()
+    }
+    BackHandler(onBack = dismiss)
 
     Column(
         modifier = Modifier
@@ -112,7 +102,7 @@ fun VoiceInputScreen(
             .background(colors.background)
             .padding(top = insets.calculateTopPadding(), bottom = insets.calculateBottomPadding()),
     ) {
-        Header(onBack = onBack)
+        Header(onBack = dismiss)
 
         if (!micGranted) {
             PermissionDeniedBody(
@@ -124,37 +114,32 @@ fun VoiceInputScreen(
                     )
                     context.startActivity(intent)
                 },
-                onCancel = onBack,
+                onCancel = dismiss,
             )
         } else {
             AnimatedContent(
-                targetState = isRecording,
+                targetState = state.phase,
                 transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
                 label = "voiceInputState",
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-            ) { recording ->
-                if (recording) {
-                    RecordingBody()
-                } else {
-                    ReviewBody(
-                        transcript = transcript,
-                        onTranscriptChange = { transcript = it },
+            ) { phase ->
+                when (phase) {
+                    VoicePhase.Recording -> RecordingBody()
+                    VoicePhase.Transcribing -> TranscribingBody()
+                    VoicePhase.Review -> ReviewBody(
+                        transcript = state.transcript,
+                        error = state.error,
+                        onTranscriptChange = viewModel::onTranscriptChange,
                     )
                 }
             }
 
             Actions(
-                isRecording = isRecording,
-                canTranslate = transcript.isNotBlank(),
-                onStop = { isRecording = false },
-                onTranslate = {
-                    onTranslate(transcript.trim())
-                },
-                onRecordAgain = {
-                    transcript = ""
-                    attempt += 1
-                    isRecording = true
-                },
+                phase = state.phase,
+                canTranslate = state.transcript.isNotBlank(),
+                onStop = { viewModel.stopAndTranscribe() },
+                onTranslate = { onTranslate(state.transcript.trim()) },
+                onRecordAgain = { viewModel.recordAgain() },
             )
         }
     }
@@ -229,9 +214,30 @@ private fun RecordingBody() {
         )
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.S2))
         Text(
-            text = "Speak clearly into your device",
+            text = "Speak clearly, then tap Stop",
             color = colors.textSecondary,
             fontSize = DesignTokens.Typography.Size.Sm,
+        )
+    }
+}
+
+@Composable
+private fun TranscribingBody() {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = DesignTokens.Spacing.S6),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        CircularProgressIndicator(color = colors.primary, modifier = Modifier.size(56.dp))
+        Spacer(modifier = Modifier.height(DesignTokens.Spacing.S6))
+        Text(
+            text = "Transcribing…",
+            color = colors.foreground,
+            fontSize = DesignTokens.Typography.Size.Lg,
+            fontWeight = FontWeight.Medium,
         )
     }
 }
@@ -291,6 +297,7 @@ private fun PulsingMic() {
 @Composable
 private fun ReviewBody(
     transcript: String,
+    error: String?,
     onTranscriptChange: (String) -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -302,28 +309,38 @@ private fun ReviewBody(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        val tint = if (error != null) colors.destructive else colors.success
         Box(
             modifier = Modifier
                 .size(140.dp)
                 .clip(CircleShape)
-                .background(colors.success.copy(alpha = 0.12f)),
+                .background(tint.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.Check,
+                imageVector = if (error != null) Icons.Outlined.Block else Icons.Outlined.Check,
                 contentDescription = null,
-                tint = colors.success,
+                tint = tint,
                 modifier = Modifier.size(64.dp),
             )
         }
 
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.S6))
         Text(
-            text = "Recording complete",
+            text = if (error != null) "Couldn't transcribe" else "Recording complete",
             color = colors.foreground,
             fontSize = DesignTokens.Typography.Size.Lg,
             fontWeight = FontWeight.Medium,
         )
+        if (error != null) {
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S2))
+            Text(
+                text = error,
+                color = colors.textSecondary,
+                fontSize = DesignTokens.Typography.Size.Sm,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.S6))
 
         Column(
@@ -358,7 +375,7 @@ private fun ReviewBody(
                 decorationBox = { inner ->
                     if (transcript.isEmpty()) {
                         Text(
-                            text = "Your speech will appear here…",
+                            text = "Edit the transcript if needed…",
                             color = colors.textSecondary,
                             fontSize = DesignTokens.Typography.Size.Base,
                         )
@@ -426,7 +443,7 @@ private fun PermissionDeniedBody(
 
 @Composable
 private fun Actions(
-    isRecording: Boolean,
+    phase: VoicePhase,
     canTranslate: Boolean,
     onStop: () -> Unit,
     onTranslate: () -> Unit,
@@ -444,45 +461,49 @@ private fun Actions(
             ),
         verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
     ) {
-        if (isRecording) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
-                    .background(colors.destructive)
-                    .clickable(onClick = onStop)
-                    .padding(vertical = DesignTokens.Spacing.S4),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+        when (phase) {
+            VoicePhase.Recording -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
+                        .background(colors.destructive)
+                        .clickable(onClick = onStop)
+                        .padding(vertical = DesignTokens.Spacing.S4),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = null,
-                        tint = colors.onPrimary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        text = "Stop Recording",
-                        color = colors.onPrimary,
-                        fontSize = DesignTokens.Typography.Size.Base,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = null,
+                            tint = colors.onPrimary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = "Stop Recording",
+                            color = colors.onPrimary,
+                            fontSize = DesignTokens.Typography.Size.Base,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
-        } else {
-            CoralButton(
-                text = "Translate",
-                onClick = onTranslate,
-                enabled = canTranslate,
-            )
-            CoralButton(
-                text = "Record Again",
-                onClick = onRecordAgain,
-                variant = CoralButtonVariant.Secondary,
-            )
+            VoicePhase.Transcribing -> Unit
+            VoicePhase.Review -> {
+                CoralButton(
+                    text = "Translate",
+                    onClick = onTranslate,
+                    enabled = canTranslate,
+                )
+                CoralButton(
+                    text = "Record Again",
+                    onClick = onRecordAgain,
+                    variant = CoralButtonVariant.Secondary,
+                )
+            }
         }
     }
 }

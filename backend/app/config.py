@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     app_jwt_expiry_hours: int = 720
 
     # Database
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5434/translator"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5436/translator"
 
     @field_validator("database_url", mode="before")
     @classmethod

@@ -25,9 +25,9 @@ import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,17 +52,24 @@ private fun String.isValidEmail(): Boolean =
     android.util.Patterns.EMAIL_ADDRESS.matcher(this).matches()
 
 @Composable
-fun ForgotPasswordScreen(onBack: () -> Unit) {
+fun ForgotPasswordScreen(
+    onBack: () -> Unit,
+    viewModel: AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+) {
     val colors = AppTheme.colors
     val systemInsets = WindowInsets.systemBars.asPaddingValues()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val uiState by viewModel.state.collectAsState()
 
     // #11 — rememberSaveable for form state (also preserves success state across rotation).
     var email by rememberSaveable { mutableStateOf("") }
     var sent by rememberSaveable { mutableStateOf(false) }
 
-    // #27 — isLoading on submit.
-    var submitting by rememberSaveable { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    // The reset email is sent asynchronously; flip to the success screen only
+    // when the backend confirms via the effect.
+    LaunchedAuthEffects(viewModel, context, onPasswordResetSent = { sent = true })
+
+    val submitting = uiState.submitting
 
     // #20 — keyboard dismiss.
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -186,12 +193,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                         onDone = {
                             if (formEnabled) {
                                 keyboardController?.hide()
-                                scope.launch {
-                                    submitting = true
-                                    delay(600)
-                                    submitting = false
-                                    sent = true
-                                }
+                                viewModel.sendPasswordReset(email)
                             }
                         },
                     ),
@@ -213,12 +215,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                 text = "Send Reset Link",
                 onClick = {
                     keyboardController?.hide()
-                    scope.launch {
-                        submitting = true
-                        delay(600)
-                        submitting = false
-                        sent = true
-                    }
+                    viewModel.sendPasswordReset(email)
                 },
                 enabled = formEnabled,
                 isLoading = submitting,

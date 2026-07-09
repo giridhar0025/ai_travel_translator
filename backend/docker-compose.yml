@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: translator
     ports:
-      - "5434:5432"   # 5434 on host to avoid clashing with a local Postgres on 5432
+      - "5436:5432"   # 5436 on host — 5432/5434/5435 are all taken by other Postgres instances
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,7 +27,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/translator
     ports:
-      - "8000:8000"
+      - "8123:8000"   # host 8123 → container 8000 (8000/8080/8081 taken on host)
 
 volumes:
   db_data:

@@ -27,12 +27,15 @@ import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,25 +57,24 @@ private const val SlowPlayDurationMs = 4000L
 fun AudioPlayer(
     text: String,
     pronunciation: String?,
+    languageCode: String,
     modifier: Modifier = Modifier,
     initialSlow: Boolean = false,
-    // NOTE(audit-#10): caller should pass initialPlay = req.slow
     initialPlay: Boolean = false,
+    viewModel: AudioPlayerViewModel = hiltViewModel(),
 ) {
     val colors = AppTheme.colors
-    var isPlaying by rememberSaveable { mutableStateOf(false) }
+    val audioState by viewModel.state.collectAsState()
     var isSlow by rememberSaveable { mutableStateOf(initialSlow) }
+    val isPlaying = audioState.playing || audioState.preparing
 
-    // #10: auto-start playback when requested (e.g. launched from "Slow" chip)
+    // #10: auto-start playback when requested (e.g. launched from the "Slow" chip).
     LaunchedEffect(Unit) {
-        if (initialPlay) isPlaying = true
+        if (initialPlay) viewModel.play(text, languageCode, isSlow)
     }
-
-    LaunchedEffect(isPlaying, isSlow) {
-        if (isPlaying) {
-            delay(if (isSlow) SlowPlayDurationMs else PlayDurationMs)
-            isPlaying = false
-        }
+    // Stop playback when the sheet is dismissed.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.stop() }
     }
 
     Column(
@@ -98,7 +100,7 @@ fun AudioPlayer(
         )
 
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.S6))
-        PlayerWaveform(isPlaying = isPlaying)
+        PlayerWaveform(isPlaying = audioState.playing)
 
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.S6))
         Row(
@@ -108,12 +110,27 @@ fun AudioPlayer(
         ) {
             PlayPauseButton(
                 isPlaying = isPlaying,
-                onToggle = { isPlaying = !isPlaying },
+                onToggle = { viewModel.toggle(text, languageCode, isSlow) },
                 modifier = Modifier.weight(1f),
             )
             SlowToggle(
                 isSlow = isSlow,
-                onToggle = { isSlow = !isSlow },
+                onToggle = {
+                    isSlow = !isSlow
+                    // Restart at the new speed if currently playing.
+                    if (isPlaying) viewModel.play(text, languageCode, isSlow)
+                },
+            )
+        }
+
+        audioState.error?.let { err ->
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S3))
+            Text(
+                text = err,
+                color = colors.destructive,
+                fontSize = DesignTokens.Typography.Size.Xs,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
 
