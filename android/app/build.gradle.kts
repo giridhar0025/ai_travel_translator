@@ -52,6 +52,21 @@ android {
         buildConfigField("String", "FIREBASE_WEB_CLIENT_ID", "\"${prop("FIREBASE_WEB_CLIENT_ID")}\"")
     }
 
+    // Release signing — credentials come from local.properties (gitignored).
+    // When RELEASE_STORE_FILE is blank the release build stays unsigned, so a
+    // fresh checkout without the keystore still configures cleanly.
+    val releaseStoreFile = prop("RELEASE_STORE_FILE")
+    signingConfigs {
+        if (releaseStoreFile.isNotBlank()) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = prop("RELEASE_STORE_PASSWORD")
+                keyAlias = prop("RELEASE_KEY_ALIAS")
+                keyPassword = prop("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -59,6 +74,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
