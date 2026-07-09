@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,19 +49,19 @@ import com.divami.traveltranslator.designsystem.components.CoralButtonVariant
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onGoogleLogin: () -> Unit,
-    onAppleLogin: () -> Unit,
+    onAuthenticated: () -> Unit,
     onEmailLogin: () -> Unit,
-    onSkip: () -> Unit,
+    viewModel: AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val colors = AppTheme.colors
     val systemInsets = WindowInsets.systemBars.asPaddingValues()
-    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val uiState by viewModel.state.collectAsState()
 
-    // #27 — per-button submitting state.
-    var submittingGoogle by rememberSaveable { mutableStateOf(false) }
-    var submittingApple  by rememberSaveable { mutableStateOf(false) }
-    var submittingEmail  by rememberSaveable { mutableStateOf(false) }
+    // Route auth outcomes: success navigates forward, errors surface as a toast.
+    LaunchedAuthEffects(viewModel, context, onAuthenticated)
+
+    val submitting = uiState.submitting
 
     // #26 — bottom sheet state.
     var showTermsSheet   by rememberSaveable { mutableStateOf(false) }
@@ -126,18 +127,10 @@ fun LoginScreen(
             // #27 — Email login button (primary CTA — top position for hierarchy).
             CoralButton(
                 text = "Continue with Email",
-                onClick = {
-                    scope.launch {
-                        submittingEmail = true
-                        delay(600)
-                        submittingEmail = false
-                        onEmailLogin()
-                    }
-                },
+                onClick = onEmailLogin,
                 variant = CoralButtonVariant.Primary,
                 leadingIcon = Icons.Outlined.Mail,
-                isLoading = submittingEmail,
-                enabled = !submittingGoogle && !submittingApple && !submittingEmail,
+                enabled = !submitting,
             )
 
             // Divider row between primary CTA and social alternatives.
@@ -155,41 +148,36 @@ fun LoginScreen(
             // #27 — Google login button with 600 ms loading feedback (secondary).
             CoralButton(
                 text = "Continue with Google",
-                onClick = {
-                    scope.launch {
-                        submittingGoogle = true
-                        delay(600)
-                        submittingGoogle = false
-                        onGoogleLogin()
-                    }
-                },
+                onClick = { viewModel.signInWithGoogle(context) },
                 variant = CoralButtonVariant.Secondary,
                 leadingIcon = Icons.Outlined.Public,
-                isLoading = submittingGoogle,
-                enabled = !submittingGoogle && !submittingApple && !submittingEmail,
+                isLoading = submitting,
+                enabled = !submitting,
             )
-            // #27 — Apple login button (optional, bottom of social block).
+            // Apple sign-in needs a server-side OAuth web flow on Android (no
+            // native SDK), so it's out of scope here — inform the user rather
+            // than pretend it works.
             BlackPillButton(
                 text = "Continue with Apple",
                 onClick = {
-                    scope.launch {
-                        submittingApple = true
-                        delay(600)
-                        submittingApple = false
-                        onAppleLogin()
-                    }
+                    android.widget.Toast.makeText(
+                        context,
+                        "Apple sign-in isn't available on Android yet — use Email or Google.",
+                        android.widget.Toast.LENGTH_SHORT,
+                    ).show()
                 },
                 icon = Icons.Outlined.PhoneIphone,
-                isLoading = submittingApple,
-                enabled = !submittingGoogle && !submittingApple && !submittingEmail,
+                isLoading = false,
+                enabled = !submitting,
             )
 
             Spacer(Modifier.height(DesignTokens.Spacing.S2))
 
             CoralButton(
                 text = "Skip for now",
-                onClick = onSkip,
+                onClick = { viewModel.continueAsGuest() },
                 variant = CoralButtonVariant.Text,
+                enabled = !submitting,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
         }

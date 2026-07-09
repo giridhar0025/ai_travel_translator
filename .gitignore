@@ -44,3 +44,7 @@ android/captures/
 #   Add it here if you wire codegen into Xcode/Gradle build phases later.
 # - GoogleService-Info.plist and google-services.json are NOT secrets per
 #   Firebase guidance — keep them committed. Restrict via Firebase rules.
+
+# Signing keystores (never commit)
+*.jks
+*.keystore

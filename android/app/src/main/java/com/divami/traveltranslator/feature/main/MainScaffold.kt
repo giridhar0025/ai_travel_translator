@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 import com.divami.traveltranslator.designsystem.components.AppBottomSheet
@@ -55,7 +55,7 @@ fun MainScaffold(
     var showVoiceInput by rememberSaveable { mutableStateOf(false) }
     var showMicDeniedSheet by rememberSaveable { mutableStateOf(false) }
     val systemInsets = WindowInsets.systemBars.asPaddingValues()
-    val chatViewModel: ChatViewModel = viewModel()
+    val chatViewModel: ChatViewModel = hiltViewModel()
 
     fun micPermissionGranted() = ContextCompat.checkSelfPermission(
         context,

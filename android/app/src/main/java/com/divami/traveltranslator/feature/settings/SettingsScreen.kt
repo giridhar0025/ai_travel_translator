@@ -35,10 +35,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.divami.traveltranslator.BuildConfig
+import com.divami.traveltranslator.domain.model.PlaybackSpeed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,12 +62,14 @@ import com.divami.traveltranslator.designsystem.components.RadioCard
 fun SettingsScreen(
     onLogout: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val colors = AppTheme.colors
+    val uiState by viewModel.state.collectAsState()
 
-    var defaultLanguage by rememberSaveable { mutableStateOf("English") }
-    var playbackSpeed by rememberSaveable { mutableStateOf("Normal") }
-    var offlineMode by rememberSaveable { mutableStateOf(false) }
+    val defaultLanguage = uiState.defaultLanguageName
+    val playbackSpeed = playbackSpeedLabel(uiState.playbackSpeed)
+    val offlineMode = uiState.offlineEnabled
 
     // Sheet visibility state — #7 language, #9 speed, #8 privacy, #9 logout confirm
     var showLanguageSheet by rememberSaveable { mutableStateOf(false) }
@@ -105,8 +110,6 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // TODO(audit-#44): tap → go to Sign In (Phase 9 auth)
-                        .clickable(onClick = { })
                         .padding(DesignTokens.Spacing.S6),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
@@ -126,14 +129,15 @@ fun SettingsScreen(
                         )
                     }
                     Text(
-                        text = "Guest User",
+                        text = uiState.displayName,
                         color = colors.foreground,
                         fontSize = DesignTokens.Typography.Size.Base,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = "Sign in to sync your settings",
+                        text = if (uiState.isGuest) "Sign in to sync your settings"
+                        else uiState.email ?: "Signed in",
                         color = colors.textSecondary,
                         fontSize = DesignTokens.Typography.Size.Sm,
                         textAlign = TextAlign.Center,
@@ -165,7 +169,7 @@ fun SettingsScreen(
                     subtitle = "Use offline mode",
                     enabled = true,
                     checked = offlineMode,
-                    onChange = { offlineMode = it },
+                    onChange = { viewModel.setOffline(it) },
                 )
             }
 
@@ -214,8 +218,7 @@ fun SettingsScreen(
             // ── #44 Version footer ──────────────────────────────────────────
             Spacer(modifier = Modifier.height(DesignTokens.Spacing.S6))
             Text(
-                // TODO(audit-#44): read from BuildConfig.VERSION_NAME
-                text = "Travel Translator AI · v0.1.0",
+                text = "Travel Translator AI · v${BuildConfig.VERSION_NAME}",
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 textAlign = TextAlign.Center,
@@ -243,7 +246,7 @@ fun SettingsScreen(
                             title = lang,
                             isSelected = defaultLanguage == lang,
                             onClick = {
-                                defaultLanguage = lang
+                                viewModel.setDefaultLanguage(languageCodeFor(lang))
                                 showLanguageSheet = false
                             },
                         )
@@ -281,7 +284,7 @@ fun SettingsScreen(
                         title = speed,
                         isSelected = playbackSpeed == speed,
                         onClick = {
-                            playbackSpeed = speed
+                            viewModel.setPlaybackSpeed(playbackSpeedFor(speed))
                             showSpeedSheet = false
                         },
                     )
@@ -531,3 +534,21 @@ private fun AppSwitch(
 @Composable
 private fun animateColorAsState(target: Color, label: String) =
     androidx.compose.animation.animateColorAsState(targetValue = target, label = label)
+
+// ── Display <-> domain mappings ─────────────────────────────────────────────
+
+private fun playbackSpeedLabel(speed: PlaybackSpeed): String = when (speed) {
+    PlaybackSpeed.Normal -> "Normal"
+    PlaybackSpeed.Slow -> "Slow"
+    PlaybackSpeed.VerySlow -> "Very Slow"
+}
+
+private fun playbackSpeedFor(label: String): PlaybackSpeed = when (label) {
+    "Slow" -> PlaybackSpeed.Slow
+    "Very Slow" -> PlaybackSpeed.VerySlow
+    else -> PlaybackSpeed.Normal
+}
+
+private fun languageCodeFor(displayName: String): String =
+    com.divami.traveltranslator.designsystem.components.AppLanguage.Supported
+        .firstOrNull { it.displayName == displayName }?.code ?: "en"

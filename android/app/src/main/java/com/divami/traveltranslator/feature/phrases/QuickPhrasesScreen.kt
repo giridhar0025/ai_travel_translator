@@ -39,7 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 import com.divami.traveltranslator.designsystem.components.SearchBar
@@ -48,7 +48,7 @@ import com.divami.traveltranslator.designsystem.components.SearchBar
 fun QuickPhrasesScreen(
     onPhraseSelect: (String) -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: PhrasesViewModel = viewModel(),
+    viewModel: PhrasesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     var openCategory by rememberSaveable { mutableStateOf<String?>(null) }
