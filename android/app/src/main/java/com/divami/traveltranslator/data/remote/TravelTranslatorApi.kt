@@ -67,6 +67,15 @@ interface TravelTranslatorApi {
     @POST("translate")
     suspend fun translate(@Body body: TranslateRequestDto): TranslateResultDto
 
+    /**
+     * Streaming translation as Server-Sent Events. `@Streaming` keeps OkHttp from
+     * buffering the whole body so the repository can read `data:` frames as they
+     * arrive (see TranslationRepository). Same shape as the non-streaming request.
+     */
+    @Streaming
+    @POST("translate/stream")
+    suspend fun translateStream(@Body body: TranslateRequestDto): ResponseBody
+
     @POST("translate/batch")
     suspend fun translateBatch(@Body body: TranslateBatchRequestDto): TranslateBatchResponseDto
 

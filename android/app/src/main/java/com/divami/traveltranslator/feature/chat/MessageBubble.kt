@@ -1,14 +1,21 @@
 package com.divami.traveltranslator.feature.chat
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,20 +32,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -47,14 +50,19 @@ import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 import com.divami.traveltranslator.designsystem.components.AppLanguage
 import com.divami.traveltranslator.designsystem.components.LanguageFlag
-import androidx.compose.animation.core.tween
 
+/** Playback state of a message's translation audio, as seen by its bubble. */
+enum class PlaybackState { Idle, Preparing, Playing }
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     message: ChatMessage,
     flipped: Boolean,
+    playback: PlaybackState,
+    isOwnLatest: Boolean,
     onFlip: () -> Unit,
-    onPlay: () -> Unit,
+    onPlayToggle: () -> Unit,
     onSlow: () -> Unit,
     onEdit: () -> Unit,
     onCopy: () -> Unit,
@@ -62,6 +70,7 @@ fun MessageBubble(
 ) {
     val colors = AppTheme.colors
     val isMine = message.sender == Sender.You
+    val showTyping = message.isStreaming && message.translatedText.isBlank()
 
     val bubbleShape = RoundedCornerShape(
         topStart = if (isMine) DesignTokens.Radius.Modal else DesignTokens.Radius.Sm,
@@ -76,7 +85,7 @@ fun MessageBubble(
             .padding(horizontal = DesignTokens.Spacing.S4),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .widthIn(max = 320.dp)
                 .clip(bubbleShape)
@@ -87,30 +96,14 @@ fun MessageBubble(
                     width = 1.dp,
                     color = if (isMine) colors.primary.copy(alpha = 0.25f) else colors.border,
                     shape = bubbleShape,
-                )
-                .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+                ),
         ) {
-            // Flip control — top-right corner, 24dp circular tap target
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.TopEnd,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onFlip),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.SwapVert,
-                        contentDescription = "Flip languages",
-                        tint = colors.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-
+          Column(
+            modifier = Modifier.padding(
+                horizontal = DesignTokens.Spacing.S3,
+                vertical = DesignTokens.Spacing.S2,
+            ),
+        ) {
             // #39: animate the top section when flipped state changes
             AnimatedContent(
                 targetState = flipped,
@@ -126,6 +119,7 @@ fun MessageBubble(
                         text = message.originalText,
                         isTranslation = false,
                         pronunciation = message.pronunciation,
+                        showTyping = false,
                     )
                 } else {
                     LanguageSection(
@@ -133,11 +127,12 @@ fun MessageBubble(
                         text = message.translatedText,
                         isTranslation = true,
                         pronunciation = null,
+                        showTyping = showTyping,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S3))
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S1))
 
             // #39: animate the bottom section when flipped state changes
             AnimatedContent(
@@ -154,6 +149,7 @@ fun MessageBubble(
                         text = message.translatedText,
                         isTranslation = true,
                         pronunciation = null,
+                        showTyping = showTyping,
                     )
                 } else {
                     LanguageSection(
@@ -161,83 +157,126 @@ fun MessageBubble(
                         text = message.originalText,
                         isTranslation = false,
                         pronunciation = message.pronunciation,
+                        showTyping = false,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S3))
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S1))
 
-            // Action row: Play chip + overflow menu
+            // Action row: inline Play/Stop (long-press = slow), one-tap Copy, and
+            // Edit only on your own most-recent message. No overflow menu.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Primary Play chip
+                // Play chip — toggles speak/stop; long-press speaks slowly.
+                val isBusy = playback != PlaybackState.Idle
+                val playLabel = when (playback) {
+                    PlaybackState.Playing -> "Stop"
+                    PlaybackState.Preparing -> "Loading"
+                    PlaybackState.Idle -> "Play"
+                }
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
-                        .background(colors.primaryLight)
-                        .clickable(onClick = onPlay)
+                        .background(if (isBusy) colors.primary.copy(alpha = 0.18f) else colors.primaryLight)
+                        .combinedClickable(
+                            onClick = onPlayToggle,
+                            onLongClick = onSlow,
+                        )
                         .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                        contentDescription = null,
-                        tint = colors.primary,
-                        modifier = Modifier.size(14.dp),
-                    )
+                    when (playback) {
+                        PlaybackState.Preparing -> CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp,
+                            color = colors.primary,
+                        )
+                        PlaybackState.Playing -> Icon(
+                            imageVector = Icons.Outlined.Stop,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        PlaybackState.Idle -> Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                     Text(
-                        text = "Play",
+                        text = playLabel,
                         color = colors.primary,
                         fontSize = DesignTokens.Typography.Size.Xs,
                         fontWeight = FontWeight.Medium,
                     )
                 }
 
-                // Overflow menu: Slow / Edit / Copy
-                var expanded by remember { mutableStateOf(false) }
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(colors.muted)
-                            .clickable { expanded = true },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "More actions",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Slow playback") },
-                            leadingIcon = { Icon(Icons.Outlined.Speed, null) },
-                            onClick = { onSlow(); expanded = false },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Edit") },
-                            leadingIcon = { Icon(Icons.Outlined.Edit, null) },
-                            onClick = { onEdit(); expanded = false },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Copy translation") },
-                            leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) },
-                            onClick = { onCopy(); expanded = false },
-                        )
-                    }
+                // One-tap Copy
+                BubbleActionIcon(
+                    icon = Icons.Outlined.ContentCopy,
+                    contentDescription = "Copy translation",
+                    onClick = onCopy,
+                )
+
+                // Edit — only meaningful on your own latest message
+                if (isOwnLatest) {
+                    BubbleActionIcon(
+                        icon = Icons.Outlined.Edit,
+                        contentDescription = "Edit message",
+                        onClick = onEdit,
+                    )
                 }
             }
+          }
+
+          // Flip control — explicit, labelled corner button, kept for accessibility.
+          Box(
+              modifier = Modifier
+                  .align(Alignment.TopEnd)
+                  .padding(DesignTokens.Spacing.S1)
+                  .size(28.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = onFlip),
+              contentAlignment = Alignment.Center,
+          ) {
+              Icon(
+                  imageVector = Icons.Outlined.SwapVert,
+                  contentDescription = "Flip languages",
+                  tint = colors.primary,
+                  modifier = Modifier.size(16.dp),
+              )
+          }
         }
+    }
+}
+
+@Composable
+private fun BubbleActionIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(colors.muted)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 
@@ -247,9 +286,10 @@ private fun LanguageSection(
     text: String,
     isTranslation: Boolean,
     pronunciation: String?,
+    showTyping: Boolean,
 ) {
     val colors = AppTheme.colors
-    Column(modifier = Modifier.padding(top = DesignTokens.Spacing.S2)) {
+    Column(modifier = Modifier.padding(top = DesignTokens.Spacing.S1)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
@@ -262,12 +302,16 @@ private fun LanguageSection(
                 fontWeight = FontWeight.Medium,
             )
         }
-        Text(
-            text = text,
-            color = colors.foreground,
-            fontSize = DesignTokens.Typography.Size.Base,
-            modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
-        )
+        if (showTyping) {
+            TypingDots(modifier = Modifier.padding(top = DesignTokens.Spacing.S2))
+        } else {
+            Text(
+                text = text,
+                color = colors.foreground,
+                fontSize = DesignTokens.Typography.Size.Base,
+                modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
+            )
+        }
         if (!pronunciation.isNullOrBlank()) {
             Text(
                 text = pronunciation,
@@ -275,6 +319,37 @@ private fun LanguageSection(
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontStyle = FontStyle.Italic,
                 modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
+            )
+        }
+    }
+}
+
+/** Three dots pulsing in sequence — the "translating…" indicator while streaming. */
+@Composable
+private fun TypingDots(modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val transition = rememberInfiniteTransition(label = "typing")
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(3) { index ->
+            val alpha by transition.animateFloat(
+                initialValue = 0.25f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 600, delayMillis = index * 150),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "dot-$index",
+            )
+            Box(
+                modifier = Modifier
+                    .alpha(alpha)
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(colors.primary),
             )
         }
     }

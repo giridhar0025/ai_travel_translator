@@ -48,6 +48,10 @@ class AudioRecorder(private val context: Context) {
         return file?.takeIf { it.length() > 0 }
     }
 
+    /** Current peak amplitude (0..32767) since the last read — drives the live
+     *  waveform. Returns 0 when not recording. */
+    fun amplitude(): Int = runCatching { recorder?.maxAmplitude ?: 0 }.getOrDefault(0)
+
     /** Aborts an in-progress recording and discards the file. */
     fun cancel() {
         stopQuietly()

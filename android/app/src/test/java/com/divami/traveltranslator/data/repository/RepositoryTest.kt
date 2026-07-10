@@ -8,6 +8,7 @@ import com.divami.traveltranslator.data.remote.dto.MessageDto
 import com.divami.traveltranslator.data.remote.dto.TranslateRequestDto
 import com.divami.traveltranslator.data.remote.dto.TranslateResultDto
 import com.divami.traveltranslator.domain.model.MessageRole
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -54,6 +55,30 @@ class RepositoryTest {
     }
 
     @Test
+    fun `translation repository streams SSE deltas then done`() = runTest {
+        val sse = buildString {
+            append("data: {\"delta\": \"ना\"}\n\n")
+            append("data: {\"delta\": \"मस्ते\"}\n\n")
+            append("data: {\"done\": true, \"translation\": \"नामस्ते\", \"pronunciation\": \"naːmste\", \"latency_ms\": 42, \"model\": \"m\"}\n\n")
+        }
+        val api = object : FakeApi() {
+            override suspend fun translateStream(body: TranslateRequestDto) =
+                sse.toResponseBody("text/event-stream".toMediaType())
+        }
+        val repo = TranslationRepositoryImpl(api, json)
+
+        val chunks = repo.translateStreaming("en", "hi", "hello", null).toList()
+
+        val deltas = chunks.filterIsInstance<TranslationChunk.Delta>().map { it.text }
+        val done = chunks.filterIsInstance<TranslationChunk.Done>()
+        assertEquals(listOf("ना", "मस्ते"), deltas)
+        assertEquals(1, done.size)
+        assertEquals("नामस्ते", done.first().translation.translation)
+        assertEquals("naːmste", done.first().translation.pronunciation)
+        assertEquals(42, done.first().translation.latencyMs)
+    }
+
+    @Test
     fun `conversation repository create + append map correctly`() = runTest {
         val api = object : FakeApi() {
             override suspend fun appendMessage(id: String, body: com.divami.traveltranslator.data.remote.dto.AppendMessageRequestDto): MessageDto {
@@ -88,6 +113,7 @@ open class FakeApi : TravelTranslatorApi {
     override suspend fun me() = nope()
     override suspend fun deleteAccount() = nope()
     override suspend fun translate(body: TranslateRequestDto): TranslateResultDto = nope()
+    override suspend fun translateStream(body: TranslateRequestDto): okhttp3.ResponseBody = nope()
     override suspend fun translateBatch(body: com.divami.traveltranslator.data.remote.dto.TranslateBatchRequestDto) = nope()
     override suspend fun transcribe(audio: okhttp3.MultipartBody.Part, language: okhttp3.RequestBody?) = nope()
     override suspend fun synthesize(body: com.divami.traveltranslator.data.remote.dto.SynthesizeRequestDto) = nope()

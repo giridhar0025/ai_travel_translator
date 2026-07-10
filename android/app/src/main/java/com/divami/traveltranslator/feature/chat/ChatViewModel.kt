@@ -5,13 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.divami.traveltranslator.core.network.ApiResult
 import com.divami.traveltranslator.data.local.SessionStore
 import com.divami.traveltranslator.data.repository.ConversationRepository
+import com.divami.traveltranslator.data.repository.TranslationChunk
 import com.divami.traveltranslator.data.repository.TranslationRepository
 import com.divami.traveltranslator.designsystem.components.AppLanguage
 import com.divami.traveltranslator.domain.model.MessageRole
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -110,37 +113,99 @@ class ChatViewModel @Inject constructor(
         if (homeLanguageCode == null) homeLanguageCode = src.code
         val sender = if (src.code == homeLanguageCode) Sender.You else Sender.OtherPerson
 
-        _state.update { it.copy(input = "", isSending = true, error = null) }
+        // Add the message immediately with an empty, streaming translation so the
+        // bubble appears at once and fills token-by-token as the SSE stream arrives.
+        val messageId = "msg-${text.hashCode()}-${_state.value.messages.size}"
+        val placeholder = ChatMessage(
+            id = messageId,
+            sender = sender,
+            originalText = text,
+            originalLanguage = src,
+            translatedText = "",
+            translatedLanguage = tgt,
+            pronunciation = null,
+            isStreaming = true,
+        )
+        _state.update {
+            it.copy(input = "", isSending = true, error = null, messages = it.messages + placeholder)
+        }
 
         viewModelScope.launch {
-            when (val result = translationRepository.translate(src.code, tgt.code, text, contextHint)) {
-                is ApiResult.Success -> {
-                    val message = ChatMessage(
-                        id = "msg-${text.hashCode()}-${_state.value.messages.size}",
-                        sender = sender,
-                        originalText = text,
-                        originalLanguage = src,
-                        translatedText = result.data.translation,
-                        translatedLanguage = tgt,
-                        pronunciation = result.data.pronunciation,
-                    )
-                    _state.update { it.copy(messages = it.messages + message, isSending = false) }
-                    persist(text, src, tgt, result.data.translation, result.data.pronunciation)
+            var accumulated = ""
+            var finalTranslation: String? = null
+            var finalPronunciation: String? = null
+
+            translationRepository.translateStreaming(src.code, tgt.code, text, contextHint)
+                .catch { cause ->
+                    if (cause is CancellationException) throw cause
+                    // Streaming failed — fall back to the plain non-streaming call so
+                    // a proxy/SSE hiccup never loses the translation.
+                    fallbackTranslate(messageId, src, tgt, text, contextHint)
                 }
-                is ApiResult.Failure -> {
-                    // Restore the text so the user doesn't lose it — but not if
-                    // they've already started typing something new.
-                    _state.update {
-                        it.copy(
-                            input = if (it.input.isBlank()) text else it.input,
-                            isSending = false,
-                            error = result.error.message,
-                        )
+                .collect { chunk ->
+                    when (chunk) {
+                        is TranslationChunk.Delta -> {
+                            accumulated += chunk.text
+                            updateMessage(messageId) { it.copy(translatedText = accumulated) }
+                        }
+                        is TranslationChunk.Done -> {
+                            finalTranslation = chunk.translation.translation
+                            finalPronunciation = chunk.translation.pronunciation
+                            updateMessage(messageId) {
+                                it.copy(
+                                    translatedText = chunk.translation.translation,
+                                    pronunciation = chunk.translation.pronunciation,
+                                    isStreaming = false,
+                                )
+                            }
+                        }
                     }
+                }
+
+            _state.update { it.copy(isSending = false) }
+            finalTranslation?.let { persist(text, src, tgt, it, finalPronunciation) }
+        }
+    }
+
+    /** Non-streaming fallback used when the SSE stream errors out. */
+    private suspend fun fallbackTranslate(
+        messageId: String,
+        src: AppLanguage,
+        tgt: AppLanguage,
+        text: String,
+        contextHint: String,
+    ) {
+        when (val result = translationRepository.translate(src.code, tgt.code, text, contextHint)) {
+            is ApiResult.Success -> {
+                updateMessage(messageId) {
+                    it.copy(
+                        translatedText = result.data.translation,
+                        pronunciation = result.data.pronunciation,
+                        isStreaming = false,
+                    )
+                }
+                _state.update { it.copy(isSending = false) }
+                persist(text, src, tgt, result.data.translation, result.data.pronunciation)
+            }
+            is ApiResult.Failure -> {
+                // Drop the placeholder, restore the text (unless the user is already
+                // typing something new), and surface the error.
+                _state.update { state ->
+                    state.copy(
+                        messages = state.messages.filterNot { it.id == messageId },
+                        input = if (state.input.isBlank()) text else state.input,
+                        isSending = false,
+                        error = result.error.message,
+                    )
                 }
             }
         }
     }
+
+    private fun updateMessage(id: String, transform: (ChatMessage) -> ChatMessage) =
+        _state.update { state ->
+            state.copy(messages = state.messages.map { if (it.id == id) transform(it) else it })
+        }
 
     /** Best-effort persistence — failures are swallowed so History lag never breaks chat. */
     private suspend fun persist(

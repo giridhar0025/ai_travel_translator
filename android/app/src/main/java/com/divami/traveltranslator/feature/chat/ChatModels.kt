@@ -12,6 +12,8 @@ data class ChatMessage(
     val translatedText: String,
     val translatedLanguage: AppLanguage,
     val pronunciation: String? = null,
+    /** True while the translation is still streaming in token-by-token. */
+    val isStreaming: Boolean = false,
 )
 
 enum class ContextMode(val label: String) {

@@ -12,6 +12,8 @@ Two flows are supported:
 """
 
 import asyncio
+import json
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -24,6 +26,42 @@ HF_ROUTER_ROOT = "https://router.huggingface.co"
 
 class HFInferenceError(Exception):
     """HF returned a non-retryable error response or the request failed terminally."""
+
+
+def _chat_completions_url(provider: str) -> str:
+    """Resolve the chat-completions URL for a provider.
+
+    `"auto"`/empty routes to the router's unified endpoint, which auto-selects
+    an available (and typically fast) provider — the model id is the plain HF
+    repo id. A concrete provider (e.g. `groq`) pins the provider path, but then
+    the model id must be that provider's own naming."""
+    if provider in ("", "auto"):
+        return f"{HF_ROUTER_ROOT}/v1/chat/completions"
+    return f"{HF_ROUTER_ROOT}/{provider}/v1/chat/completions"
+
+
+def _extract_message_content(data: dict[str, Any]) -> str:
+    """Pull the assistant message text out of an OpenAI-style chat response."""
+    choices = data.get("choices")
+    if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+        message = choices[0].get("message")
+        if isinstance(message, dict):
+            content = message.get("content")
+            if isinstance(content, str):
+                return content
+    raise HFInferenceError(f"chat completion missing content: {str(data)[:200]}")
+
+
+def _extract_delta_content(chunk: dict[str, Any]) -> str | None:
+    """Pull the incremental token text out of an OpenAI-style stream chunk."""
+    choices = chunk.get("choices")
+    if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+        delta = choices[0].get("delta")
+        if isinstance(delta, dict):
+            content = delta.get("content")
+            if isinstance(content, str):
+                return content
+    return None
 
 
 class HuggingFaceClient:
@@ -148,6 +186,91 @@ class HuggingFaceClient:
             return response.json()
 
         raise HFInferenceError(f"max retries exceeded — last status 503: {last_text}")
+
+    async def chat_completion(
+        self,
+        *,
+        provider: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+        max_retries: int = 2,
+    ) -> str:
+        """Call a provider's OpenAI-compatible `/v1/chat/completions` endpoint
+        on the HF router and return the assistant message content.
+
+        Used for LLM-backed translation. Retries on 503 (cold start) like the
+        other HF paths."""
+        url = _chat_completions_url(provider)
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        backoff = 1.0
+        last_text = ""
+
+        for attempt in range(max_retries + 1):
+            response = await self._client.post(url, json=payload)
+
+            if response.status_code == 503:
+                last_text = response.text[:200]
+                if attempt < max_retries:
+                    await asyncio.sleep(backoff)
+                    backoff *= 2
+                    continue
+                break
+
+            if response.status_code >= 400:
+                raise HFInferenceError(f"HF chat {response.status_code}: {response.text[:200]}")
+
+            return _extract_message_content(response.json())
+
+        raise HFInferenceError(f"max retries exceeded — last status 503: {last_text}")
+
+    async def chat_completion_stream(
+        self,
+        *,
+        provider: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+    ) -> AsyncIterator[str]:
+        """Stream an OpenAI-compatible chat completion from the HF router,
+        yielding content deltas as they arrive.
+
+        Parses SSE `data:` lines and stops on `[DONE]`. No 503 retry here —
+        by the time bytes stream the upstream has already committed to a
+        response; the caller handles connection-level failures."""
+        url = _chat_completions_url(provider)
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+
+        async with self._client.stream("POST", url, json=payload) as response:
+            if response.status_code >= 400:
+                body = await response.aread()
+                raise HFInferenceError(f"HF chat stream {response.status_code}: {body[:200]!r}")
+            async for line in response.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                data = line[len("data:") :].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                delta = _extract_delta_content(chunk)
+                if delta:
+                    yield delta
 
     async def infer(
         self,

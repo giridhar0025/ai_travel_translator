@@ -82,6 +82,14 @@ class VoiceViewModel @Inject constructor(
 
     fun cancel() = recorder.cancel()
 
+    /** Live mic amplitude (0..32767) for the inline waveform. */
+    fun amplitude(): Int = recorder.amplitude()
+
+    /** Reset to the initial idle state after a result has been consumed. */
+    fun clear() {
+        _state.value = VoiceUiState()
+    }
+
     override fun onCleared() {
         recorder.cancel()
         super.onCleared()

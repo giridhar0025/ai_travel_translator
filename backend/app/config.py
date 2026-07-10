@@ -42,7 +42,15 @@ class Settings(BaseSettings):
     # Hugging Face
     hf_api_token: str = ""
     hf_timeout_seconds: float = 90.0
-    hf_model_translate: str = "facebook/m2m100_418M"
+    # Translation now runs through an instruction-following LLM on the HF router's
+    # OpenAI-compatible chat-completions endpoint (idiomatic, context-aware,
+    # streaming). "auto" uses the router's unified endpoint, which auto-selects an
+    # available (typically fast) provider for the given HF model id. Pin a concrete
+    # provider (e.g. "groq") only with that provider's own model naming.
+    hf_model_translate: str = "meta-llama/Llama-3.3-70B-Instruct"
+    hf_translate_provider: str = "auto"
+    translate_temperature: float = 0.3
+    translate_max_tokens: int = 1024
     hf_model_stt: str = "openai/whisper-large-v3"
     # STT runs through this HF Inference provider's OpenAI-compatible
     # /v1/audio/transcriptions endpoint. The default `hf-inference` provider for

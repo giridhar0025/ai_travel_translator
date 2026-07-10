@@ -87,3 +87,63 @@ async def test_infer_raises_on_400() -> None:
                 await client.infer("m", json_payload={"inputs": "x"})
     finally:
         await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_chat_completion_returns_message_content() -> None:
+    client = HuggingFaceClient(token="t", timeout=5.0)
+    try:
+        with respx.mock(base_url="https://router.huggingface.co") as mock:
+            mock.post("/groq/v1/chat/completions").mock(
+                return_value=Response(200, json={"choices": [{"message": {"content": "नमस्ते"}}]})
+            )
+            result = await client.chat_completion(
+                provider="groq",
+                model="m",
+                messages=[{"role": "user", "content": "Hello"}],
+            )
+        assert result == "नमस्ते"
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_chat_completion_raises_on_400() -> None:
+    client = HuggingFaceClient(token="t", timeout=5.0)
+    try:
+        with respx.mock(base_url="https://router.huggingface.co") as mock:
+            mock.post("/groq/v1/chat/completions").mock(return_value=Response(400, text="bad"))
+            with pytest.raises(HFInferenceError, match="HF chat 400"):
+                await client.chat_completion(
+                    provider="groq",
+                    model="m",
+                    messages=[{"role": "user", "content": "Hello"}],
+                )
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_chat_completion_stream_yields_deltas_until_done() -> None:
+    body = (
+        'data: {"choices": [{"delta": {"content": "ना"}}]}\n\n'
+        'data: {"choices": [{"delta": {"content": "मस्ते"}}]}\n\n'
+        "data: [DONE]\n\n"
+    )
+    client = HuggingFaceClient(token="t", timeout=5.0)
+    try:
+        with respx.mock(base_url="https://router.huggingface.co") as mock:
+            mock.post("/groq/v1/chat/completions").mock(
+                return_value=Response(200, text=body, headers={"Content-Type": "text/event-stream"})
+            )
+            deltas = [
+                d
+                async for d in client.chat_completion_stream(
+                    provider="groq",
+                    model="m",
+                    messages=[{"role": "user", "content": "Hello"}],
+                )
+            ]
+        assert deltas == ["ना", "मस्ते"]
+    finally:
+        await client.aclose()

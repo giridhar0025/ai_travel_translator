@@ -19,8 +19,12 @@ from app.db.session import AsyncSessionLocal
 from app.services.hf_client import reset_hf_client_for_tests
 from app.services.translation import reset_translation_service_for_tests
 
-HF_BASE = "https://router.huggingface.co/hf-inference"
-EN_TO_MUL = "/models/Helsinki-NLP/opus-mt-en-mul"
+HF_BASE = "https://router.huggingface.co"
+CHAT = "/v1/chat/completions"
+
+
+def _chat(text: str) -> Response:
+    return Response(200, json={"choices": [{"message": {"content": text}}]})
 
 
 async def _delete_translations(target_lang: str) -> None:
@@ -84,9 +88,7 @@ def test_phrases_first_call_triggers_one_batch_then_caches(
         "क्या मुझे थोड़ा पानी मिल सकता है?",
     ]
     with respx.mock(base_url=HF_BASE) as mock:
-        route = mock.post(EN_TO_MUL).mock(
-            side_effect=[Response(200, json=[{"translation_text": t}]) for t in translations]
-        )
+        route = mock.post(CHAT).mock(side_effect=[_chat(t) for t in translations])
 
         r1 = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "hi"})
 
@@ -112,7 +114,7 @@ def test_phrases_target_en_short_circuits_no_hf(
     # All seeded phrases are source_lang=en; target=en must not call HF and must
     # not write any cache rows.
     with respx.mock(base_url=HF_BASE, assert_all_called=False) as mock:
-        route = mock.post(EN_TO_MUL).mock(return_value=Response(200, json=[]))
+        route = mock.post(CHAT).mock(return_value=_chat(""))
         r = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "en"})
 
         assert r.status_code == 200
@@ -129,25 +131,21 @@ def test_phrases_switching_target_triggers_new_batch(
     te_translations = ["నమస్కారం"] * 6
 
     with respx.mock(base_url=HF_BASE) as mock:
-        route = mock.post(EN_TO_MUL).mock(
-            side_effect=[Response(200, json=[{"translation_text": t}]) for t in hi_translations]
-        )
+        route = mock.post(CHAT).mock(side_effect=[_chat(t) for t in hi_translations])
         r_hi = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "hi"})
         assert r_hi.status_code == 200
         assert route.call_count == 6
 
     # Switching target → fresh batch (te has its own row per phrase).
     with respx.mock(base_url=HF_BASE) as mock:
-        route = mock.post(EN_TO_MUL).mock(
-            side_effect=[Response(200, json=[{"translation_text": t}]) for t in te_translations]
-        )
+        route = mock.post(CHAT).mock(side_effect=[_chat(t) for t in te_translations])
         r_te = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "te"})
         assert r_te.status_code == 200
         assert route.call_count == 6
 
     # hi cache still warm — no HF calls for hi.
     with respx.mock(base_url=HF_BASE, assert_all_called=False) as mock:
-        route = mock.post(EN_TO_MUL).mock(return_value=Response(200, json=[]))
+        route = mock.post(CHAT).mock(return_value=_chat(""))
         r_hi2 = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "hi"})
         assert r_hi2.status_code == 200
         assert route.call_count == 0

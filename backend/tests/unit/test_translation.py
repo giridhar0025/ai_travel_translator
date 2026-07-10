@@ -1,144 +1,202 @@
+from collections.abc import AsyncIterator
+
 import pytest
 
 from app.services.translation import (
-    EN_TO_MUL_MODEL,
-    MUL_TO_EN_MODEL,
     SameLanguageError,
+    StreamDelta,
+    StreamDone,
     TranslationService,
     UnsupportedLanguageError,
+    _clean_output,
+    build_messages,
     derive_pronunciation,
 )
 
+MODEL = "test-model"
+
 
 class _FakeHFClient:
-    """Stands in for HuggingFaceClient — records calls, returns canned per-model data."""
+    """Stands in for HuggingFaceClient — records chat calls, returns canned text."""
 
-    def __init__(self, response=None, by_model=None):
+    def __init__(self, response: str = "", deltas: list[str] | None = None) -> None:
         self.response = response
-        self.by_model = by_model or {}
-        self.calls: list[tuple] = []
+        self.deltas = deltas if deltas is not None else [response]
+        self.chat_calls: list[list[dict[str, str]]] = []
+        self.stream_calls: list[list[dict[str, str]]] = []
 
-    async def infer(
+    async def chat_completion(
         self,
-        model,
         *,
-        json_payload=None,
-        content=None,
-        content_type="audio/wav",
-        raw=False,
-        max_retries=3,
-    ):
-        self.calls.append((model, json_payload, content, raw))
-        if model in self.by_model:
-            return self.by_model[model]
+        provider: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+        max_retries: int = 2,
+    ) -> str:
+        self.chat_calls.append(messages)
         return self.response
+
+    async def chat_completion_stream(
+        self,
+        *,
+        provider: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+    ) -> AsyncIterator[str]:
+        self.stream_calls.append(messages)
+        for delta in self.deltas:
+            yield delta
+
+
+def _service(fake: _FakeHFClient) -> TranslationService:
+    return TranslationService(
+        fake,  # type: ignore[arg-type]
+        model=MODEL,
+        provider="test-provider",
+        temperature=0.3,
+        max_tokens=256,
+    )
 
 
 @pytest.mark.asyncio
-async def test_translate_en_to_hi_uses_en_mul_model() -> None:
-    fake = _FakeHFClient(response=[{"translation_text": "नमस्ते"}])
-    svc = TranslationService(fake)  # type: ignore[arg-type]
+async def test_translate_returns_llm_output_and_model() -> None:
+    fake = _FakeHFClient(response="नमस्ते")
+    svc = _service(fake)
 
     result = await svc.translate("en", "hi", "Hello")
 
     assert result.translation == "नमस्ते"
-    assert result.model == EN_TO_MUL_MODEL
+    assert result.model == MODEL
     assert result.latency_ms >= 0
-    model, payload, _, _ = fake.calls[0]
-    assert model == EN_TO_MUL_MODEL
-    assert payload == {"inputs": ">>hin<< Hello"}
+    assert len(fake.chat_calls) == 1
+    # system + user message assembled for the target language
+    messages = fake.chat_calls[0]
+    assert messages[0]["role"] == "system"
+    assert "Hindi" in messages[0]["content"]
+    assert messages[1] == {"role": "user", "content": "Hello"}
 
 
 @pytest.mark.asyncio
-async def test_translate_hi_to_en_uses_mul_en_model() -> None:
-    fake = _FakeHFClient(response=[{"translation_text": "Hello"}])
-    svc = TranslationService(fake)  # type: ignore[arg-type]
+async def test_translate_strips_wrapping_quotes() -> None:
+    fake = _FakeHFClient(response='"नमस्ते"')
+    svc = _service(fake)
 
-    result = await svc.translate("hi", "en", "नमस्ते")
+    result = await svc.translate("en", "hi", "Hello")
 
-    assert result.translation == "Hello"
-    assert result.model == MUL_TO_EN_MODEL
-    model, payload, _, _ = fake.calls[0]
-    assert model == MUL_TO_EN_MODEL
-    assert payload == {"inputs": "नमस्ते"}
+    assert result.translation == "नमस्ते"
 
 
 @pytest.mark.asyncio
-async def test_translate_cross_language_chains_via_english() -> None:
-    fake = _FakeHFClient(
-        by_model={
-            MUL_TO_EN_MODEL: [{"translation_text": "Hello friend"}],
-            EN_TO_MUL_MODEL: [{"translation_text": "สวัสดี เพื่อน"}],
-        }
-    )
-    svc = TranslationService(fake)  # type: ignore[arg-type]
-
-    result = await svc.translate("hi", "th", "नमस्ते दोस्त")
-
-    assert result.translation == "สวัสดี เพื่อน"
-    assert MUL_TO_EN_MODEL in result.model
-    assert EN_TO_MUL_MODEL in result.model
-    # 1st call: hi → en (mul-en); 2nd call: en → th (en-mul) with >>tha<< prefix
-    assert len(fake.calls) == 2
-    assert fake.calls[0][0] == MUL_TO_EN_MODEL
-    assert fake.calls[1][0] == EN_TO_MUL_MODEL
-    assert fake.calls[1][1]["inputs"].startswith(">>tha<< ")
-
-
-@pytest.mark.asyncio
-async def test_translate_with_context_prepends_to_input() -> None:
-    fake = _FakeHFClient(response=[{"translation_text": "x"}])
-    svc = TranslationService(fake)  # type: ignore[arg-type]
+async def test_translate_context_goes_into_system_prompt() -> None:
+    fake = _FakeHFClient(response="x")
+    svc = _service(fake)
 
     await svc.translate("en", "hi", "menu", context="restaurant")
 
-    _, payload, _, _ = fake.calls[0]
-    assert payload["inputs"] == ">>hin<< [Context: restaurant] menu"
+    system = fake.chat_calls[0][0]["content"]
+    assert "restaurant" in system
+    # the context must not be smuggled into the user text like the old engine did
+    assert fake.chat_calls[0][1]["content"] == "menu"
 
 
 @pytest.mark.asyncio
 async def test_translate_unsupported_source_raises() -> None:
-    svc = TranslationService(_FakeHFClient([]))  # type: ignore[arg-type]
+    svc = _service(_FakeHFClient())
     with pytest.raises(UnsupportedLanguageError):
         await svc.translate("fr", "hi", "Hello")
 
 
 @pytest.mark.asyncio
 async def test_translate_unsupported_target_raises() -> None:
-    svc = TranslationService(_FakeHFClient([]))  # type: ignore[arg-type]
+    svc = _service(_FakeHFClient())
     with pytest.raises(UnsupportedLanguageError):
         await svc.translate("en", "fr", "Hello")
 
 
 @pytest.mark.asyncio
 async def test_translate_same_language_raises() -> None:
-    svc = TranslationService(_FakeHFClient([]))  # type: ignore[arg-type]
+    svc = _service(_FakeHFClient())
     with pytest.raises(SameLanguageError):
         await svc.translate("en", "en", "Hello")
 
 
 @pytest.mark.asyncio
 async def test_translate_uses_cache_on_repeat() -> None:
-    fake = _FakeHFClient(response=[{"translation_text": "hello-hi"}])
-    svc = TranslationService(fake)  # type: ignore[arg-type]
+    fake = _FakeHFClient(response="hello-hi")
+    svc = _service(fake)
 
     await svc.translate("en", "hi", "Hello")
     await svc.translate("en", "hi", "Hello")
     await svc.translate("en", "hi", "Hello")
 
-    assert len(fake.calls) == 1, "second + third calls should hit the LRU cache"
+    assert len(fake.chat_calls) == 1, "second + third calls should hit the LRU cache"
 
 
 @pytest.mark.asyncio
 async def test_translate_batch_runs_all_items() -> None:
-    fake = _FakeHFClient(response=[{"translation_text": "x"}])
-    svc = TranslationService(fake)  # type: ignore[arg-type]
+    fake = _FakeHFClient(response="x")
+    svc = _service(fake)
 
     results = await svc.translate_batch("en", "hi", ["a", "b", "c"])
 
     assert len(results) == 3
     assert all(r.translation == "x" for r in results)
-    assert len(fake.calls) == 3
+    assert len(fake.chat_calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_translate_stream_emits_deltas_then_done() -> None:
+    fake = _FakeHFClient(deltas=["ना", "म", "स्ते"])
+    svc = _service(fake)
+
+    events = [e async for e in svc.translate_stream("en", "hi", "Hello")]
+
+    deltas = [e.text for e in events if isinstance(e, StreamDelta)]
+    done = [e for e in events if isinstance(e, StreamDone)]
+    assert deltas == ["ना", "म", "स्ते"]
+    assert len(done) == 1
+    assert done[0].result.translation == "नामस्ते"
+    assert done[0].result.model == MODEL
+
+
+@pytest.mark.asyncio
+async def test_translate_stream_cache_hit_emits_single_delta() -> None:
+    fake = _FakeHFClient(response="नमस्ते", deltas=["नमस्ते"])
+    svc = _service(fake)
+
+    # prime the cache via the non-streaming path
+    await svc.translate("en", "hi", "Hello")
+
+    events = [e async for e in svc.translate_stream("en", "hi", "Hello")]
+
+    deltas = [e for e in events if isinstance(e, StreamDelta)]
+    assert len(deltas) == 1
+    assert deltas[0].text == "नमस्ते"
+    # cache hit must NOT re-open the HF stream
+    assert fake.stream_calls == []
+
+
+@pytest.mark.asyncio
+async def test_translate_stream_validates_before_streaming() -> None:
+    svc = _service(_FakeHFClient())
+    with pytest.raises(SameLanguageError):
+        async for _ in svc.translate_stream("en", "en", "Hello"):
+            pass
+
+
+def test_clean_output_strips_quotes_and_whitespace() -> None:
+    assert _clean_output('  "hello"  ') == "hello"
+    assert _clean_output("“hello”") == "hello"
+    assert _clean_output("plain") == "plain"
+
+
+def test_build_messages_omits_context_line_when_absent() -> None:
+    messages = build_messages("en", "hi", "Hello", None)
+    assert "context" not in messages[0]["content"].lower()
 
 
 def test_derive_pronunciation_returns_none_for_english() -> None:

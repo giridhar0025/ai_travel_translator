@@ -48,6 +48,17 @@ class AudioPlayerViewModel @Inject constructor(
     private var ttsReady = false
     private var tempFile: File? = null
 
+    // An utterance requested before the TTS engine finished initializing; spoken
+    // from the init callback once the engine is ready.
+    private data class Pending(val text: String, val languageCode: String, val slow: Boolean)
+    private var pending: Pending? = null
+
+    init {
+        // Warm the on-device engine up front so the first tap doesn't fire before
+        // the voice is loaded (the "random sounds on first play" symptom).
+        ensureEngine()
+    }
+
     fun toggle(text: String, languageCode: String, slow: Boolean) {
         if (_state.value.playing || _state.value.preparing) stop() else play(text, languageCode, slow)
     }
@@ -56,6 +67,15 @@ class AudioPlayerViewModel @Inject constructor(
         if (text.isBlank()) return
         stopInternal()
         _state.update { it.copy(preparing = true, playing = false, error = null) }
+
+        // Hindi/Telugu/Thai: use the on-device engine directly. The backend's
+        // Replicate (chatterbox) voice is English-centric and renders these
+        // inconsistently on cold start; the device engines are consistent.
+        if (languageCode in ON_DEVICE_TTS_LANGS) {
+            speakOnDevice(text, languageCode, slow)
+            return
+        }
+
         viewModelScope.launch {
             val speed = if (slow) PlaybackSpeed.Slow else PlaybackSpeed.Normal
             when (val result = speechRepository.synthesize(text, languageCode, speed)) {
@@ -92,30 +112,53 @@ class AudioPlayerViewModel @Inject constructor(
         }
     }
 
-    /** On-device fallback for languages the backend won't synthesize. */
-    private fun speakOnDevice(text: String, languageCode: String, slow: Boolean) {
-        val engine = tts
-        if (engine != null && ttsReady) {
-            doSpeak(engine, text, languageCode, slow)
-            return
-        }
-        // Lazily create the engine and speak once it reports ready. The init
-        // callback runs off the main thread; StateFlow updates are thread-safe.
+    /** Creates the on-device TTS engine once; safe to call repeatedly. */
+    private fun ensureEngine() {
+        if (tts != null) return
         tts = TextToSpeech(context) { status ->
             ttsReady = status == TextToSpeech.SUCCESS
-            val ready = tts
-            if (ttsReady && ready != null) {
-                doSpeak(ready, text, languageCode, slow)
-            } else {
-                _state.update { it.copy(preparing = false, playing = false, error = "Audio isn't available for this language.") }
+            val queued = pending
+            pending = null
+            val engine = tts
+            when {
+                ttsReady && queued != null && engine != null ->
+                    doSpeak(engine, queued.text, queued.languageCode, queued.slow)
+                !ttsReady && queued != null ->
+                    _state.update {
+                        it.copy(preparing = false, playing = false, error = "Audio isn't available on this device.")
+                    }
             }
+        }
+    }
+
+    /** Speak via the on-device engine, deferring until it's initialized. */
+    private fun speakOnDevice(text: String, languageCode: String, slow: Boolean) {
+        ensureEngine()
+        val engine = tts
+        if (ttsReady && engine != null) {
+            doSpeak(engine, text, languageCode, slow)
+        } else {
+            // Engine still initializing — remember what to say; the init callback fires it.
+            pending = Pending(text, languageCode, slow)
         }
     }
 
     private fun doSpeak(engine: TextToSpeech, text: String, languageCode: String, slow: Boolean) {
         val locale = Locale.forLanguageTag(languageCode)
-        if (engine.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
-            engine.language = locale
+        // Set the language and verify the voice is actually installed. If the data
+        // is missing we must NOT speak — the engine would render the script with the
+        // default (wrong) voice, which is the "random sounds" the user heard.
+        val availability = engine.setLanguage(locale)
+        if (availability < TextToSpeech.LANG_AVAILABLE) {
+            _state.update {
+                it.copy(
+                    preparing = false,
+                    playing = false,
+                    error = "The ${locale.displayLanguage} voice isn't installed. " +
+                        "Add it in your phone's Text-to-speech settings.",
+                )
+            }
+            return
         }
         engine.setSpeechRate(if (slow) 0.6f else 1.0f)
         engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
@@ -134,6 +177,7 @@ class AudioPlayerViewModel @Inject constructor(
     }
 
     private fun stopInternal() {
+        pending = null
         mediaPlayer?.run { runCatching { stop() }; release() }
         mediaPlayer = null
         tts?.stop()
@@ -146,5 +190,14 @@ class AudioPlayerViewModel @Inject constructor(
         tts?.shutdown()
         tts = null
         super.onCleared()
+    }
+
+    private companion object {
+        /**
+         * Languages spoken by the on-device TTS engine rather than the backend.
+         * Telugu/Thai have no server-side voice; Hindi's server voice (chatterbox)
+         * is inconsistent, so it's routed on-device too.
+         */
+        val ON_DEVICE_TTS_LANGS = setOf("hi", "te", "th")
     }
 }

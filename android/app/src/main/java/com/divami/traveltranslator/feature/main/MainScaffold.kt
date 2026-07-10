@@ -93,10 +93,6 @@ fun MainScaffold(
                 when (selected) {
                     AppTab.Chat -> ChatScreen(
                         viewModel = chatViewModel,
-                        onVoiceInput = {
-                            if (micPermissionGranted()) showVoiceInput = true
-                            else micLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        },
                         contentPadding = contentPadding,
                     )
                     AppTab.Phrases -> QuickPhrasesScreen(
