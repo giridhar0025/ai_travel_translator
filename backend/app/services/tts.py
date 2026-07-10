@@ -15,6 +15,7 @@ from typing import Literal
 
 from app.config import get_settings
 from app.services.hf_client import HuggingFaceClient, get_hf_client
+from app.services.translation import SUPPORTED_LANGUAGES
 
 Speed = Literal["normal", "slow"]
 
@@ -27,11 +28,10 @@ CHATTERBOX_VERSION = "resemble-ai/chatterbox-turbo"
 # claims 20 languages but we only ship what we've actually validated.
 SERVER_TTS_LANGS: frozenset[str] = frozenset({"en", "hi"})
 
-# Languages that intentionally have no server-side TTS. The mobile client
-# falls back to its on-device TTS engine when it sees the 415 contract.
-#   - "te" — no commercial-safe Telugu TTS on any HF-routed provider today.
-#   - "th" — same problem, longstanding (the MMS/seamless Thai models are CC-BY-NC).
-CLIENT_SIDE_TTS_LANGS: frozenset[str] = frozenset({"te", "th"})
+# Every other supported language has no validated server-side voice; the
+# mobile client falls back to its on-device TTS engine when it sees the 415
+# `client_side_tts_required` contract.
+CLIENT_SIDE_TTS_LANGS: frozenset[str] = SUPPORTED_LANGUAGES - SERVER_TTS_LANGS
 
 
 class ClientSideTtsRequired(Exception):

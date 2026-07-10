@@ -229,7 +229,6 @@ fun SettingsScreen(
 
     // ── #7 Default Language sheet ───────────────────────────────────────────
     if (showLanguageSheet) {
-        val languages = listOf("English", "Hindi", "Thai", "Telugu")
         AppBottomSheet(onDismissRequest = { showLanguageSheet = false }) {
             Text(
                 text = "Default Language",
@@ -238,30 +237,19 @@ fun SettingsScreen(
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(modifier = Modifier.height(DesignTokens.Spacing.S4))
-            Column(verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3)) {
-                for (lang in languages) {
-                    val isComingSoon = lang == "Telugu"
-                    Column {
-                        RadioCard(
-                            title = lang,
-                            isSelected = defaultLanguage == lang,
-                            onClick = {
-                                viewModel.setDefaultLanguage(languageCodeFor(lang))
-                                showLanguageSheet = false
-                            },
-                        )
-                        if (isComingSoon) {
-                            Text(
-                                text = "Coming soon",
-                                color = colors.textSecondary,
-                                fontSize = DesignTokens.Typography.Size.Xs,
-                                modifier = Modifier.padding(
-                                    start = DesignTokens.Spacing.S4,
-                                    top = DesignTokens.Spacing.S1,
-                                ),
-                            )
-                        }
-                    }
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
+            ) {
+                for (lang in com.divami.traveltranslator.designsystem.components.AppLanguage.Supported) {
+                    RadioCard(
+                        title = lang.displayName,
+                        isSelected = defaultLanguage == lang.displayName,
+                        onClick = {
+                            viewModel.setDefaultLanguage(lang.code)
+                            showLanguageSheet = false
+                        },
+                    )
                 }
             }
         }
@@ -548,7 +536,3 @@ private fun playbackSpeedFor(label: String): PlaybackSpeed = when (label) {
     "Very Slow" -> PlaybackSpeed.VerySlow
     else -> PlaybackSpeed.Normal
 }
-
-private fun languageCodeFor(displayName: String): String =
-    com.divami.traveltranslator.designsystem.components.AppLanguage.Supported
-        .firstOrNull { it.displayName == displayName }?.code ?: "en"

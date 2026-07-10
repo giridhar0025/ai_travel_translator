@@ -57,9 +57,9 @@ def test_patch_settings_invalid_playback_speed_422(
 def test_patch_settings_unsupported_language_400(
     client: TestClient, headers: dict[str, str]
 ) -> None:
-    r = client.patch("/api/v1/settings", headers=headers, json={"default_language": "fr"})
+    r = client.patch("/api/v1/settings", headers=headers, json={"default_language": "xx"})
     assert r.status_code == 400
-    assert "fr" in r.json()["detail"]
+    assert "xx" in r.json()["detail"]
 
 
 def test_patch_settings_accepts_each_playback_speed(

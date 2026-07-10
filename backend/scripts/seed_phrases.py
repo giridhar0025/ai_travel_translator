@@ -13,42 +13,53 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.language import Language
 from app.db.models.phrase import Phrase, PhraseCategory
 from app.db.session import AsyncSessionLocal, engine
+from app.services.translation import LANGUAGE_NAMES
 
-# Per plan §5: Telugu TTS is server-side (Indic-Parler), Thai TTS is client-side fallback.
+# Must cover every code in app.services.translation.LANGUAGE_NAMES — recents,
+# favorites and messages carry FK constraints to languages.code, so an unseeded
+# language breaks the first translation that tries to record a recent.
+# `tts_supported` here means *server-side* TTS (SERVER_TTS_LANGS); everything
+# else uses the client's on-device engine.
+_LANGUAGE_ROWS: list[tuple[str, str, str, bool]] = [
+    # (code, name, flag_emoji, server_tts)
+    ("en", "English", "🇬🇧", True),
+    ("hi", "Hindi", "🇮🇳", True),
+    ("te", "Telugu", "🇮🇳", False),
+    ("ta", "Tamil", "🇮🇳", False),
+    ("bn", "Bengali", "🇧🇩", False),
+    ("mr", "Marathi", "🇮🇳", False),
+    ("th", "Thai", "🇹🇭", False),
+    ("es", "Spanish", "🇪🇸", False),
+    ("fr", "French", "🇫🇷", False),
+    ("de", "German", "🇩🇪", False),
+    ("it", "Italian", "🇮🇹", False),
+    ("pt", "Portuguese", "🇵🇹", False),
+    ("ja", "Japanese", "🇯🇵", False),
+    ("ko", "Korean", "🇰🇷", False),
+    ("zh", "Chinese", "🇨🇳", False),
+    ("ar", "Arabic", "🇸🇦", False),
+    ("ru", "Russian", "🇷🇺", False),
+    ("vi", "Vietnamese", "🇻🇳", False),
+    ("id", "Indonesian", "🇮🇩", False),
+    ("tr", "Turkish", "🇹🇷", False),
+]
+
 LANGUAGES: list[dict[str, object]] = [
     {
-        "code": "en",
-        "name": "English",
-        "flag_emoji": "🇬🇧",
+        "code": code,
+        "name": name,
+        "flag_emoji": flag,
         "stt_supported": True,
-        "tts_supported": True,
+        "tts_supported": server_tts,
         "translate_supported": True,
-    },
-    {
-        "code": "hi",
-        "name": "Hindi",
-        "flag_emoji": "🇮🇳",
-        "stt_supported": True,
-        "tts_supported": True,
-        "translate_supported": True,
-    },
-    {
-        "code": "te",
-        "name": "Telugu",
-        "flag_emoji": "🇮🇳",
-        "stt_supported": True,
-        "tts_supported": True,
-        "translate_supported": True,
-    },
-    {
-        "code": "th",
-        "name": "Thai",
-        "flag_emoji": "🇹🇭",
-        "stt_supported": True,
-        "tts_supported": False,  # client-side fallback per plan §5.1
-        "translate_supported": True,
-    },
+    }
+    for code, name, flag, server_tts in _LANGUAGE_ROWS
 ]
+
+# Fail loudly at import if the seed drifts from the translation service's list.
+assert {row["code"] for row in LANGUAGES} == set(
+    LANGUAGE_NAMES
+), "seed_phrases LANGUAGES out of sync with translation.LANGUAGE_NAMES"
 
 CATEGORIES: list[dict[str, object]] = [
     {

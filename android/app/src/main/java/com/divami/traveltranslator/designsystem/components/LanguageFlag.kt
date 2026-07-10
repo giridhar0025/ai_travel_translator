@@ -17,11 +17,37 @@ import com.divami.traveltranslator.designsystem.DesignTokens
 
 data class AppLanguage(val code: String, val displayName: String, val flag: String) {
     companion object {
-        val English = AppLanguage("en", "English", "A")   // Latin monogram
-        val Hindi   = AppLanguage("hi", "Hindi",   "ह")   // Devanagari monogram
-        val Telugu  = AppLanguage("te", "Telugu",  "తె")  // Telugu script monogram
-        val Thai    = AppLanguage("th", "Thai",    "ก")   // Thai script monogram
-        val Supported = listOf(English, Hindi, Telugu, Thai)
+        // Must stay in sync with the backend's translation.LANGUAGE_NAMES.
+        // `flag` is a native-script (or language-distinctive) monogram.
+        val English    = AppLanguage("en", "English",    "A")
+        val Hindi      = AppLanguage("hi", "Hindi",      "ह")
+        val Telugu     = AppLanguage("te", "Telugu",     "తె")
+        val Tamil      = AppLanguage("ta", "Tamil",      "த")
+        val Bengali    = AppLanguage("bn", "Bengali",    "ব")
+        val Marathi    = AppLanguage("mr", "Marathi",    "म")
+        val Thai       = AppLanguage("th", "Thai",       "ก")
+        val Spanish    = AppLanguage("es", "Spanish",    "Ñ")
+        val French     = AppLanguage("fr", "French",     "Ç")
+        val German     = AppLanguage("de", "German",     "ß")
+        val Italian    = AppLanguage("it", "Italian",    "È")
+        val Portuguese = AppLanguage("pt", "Portuguese", "Ã")
+        val Japanese   = AppLanguage("ja", "Japanese",   "あ")
+        val Korean     = AppLanguage("ko", "Korean",     "한")
+        val Chinese    = AppLanguage("zh", "Chinese",    "中")
+        val Arabic     = AppLanguage("ar", "Arabic",     "ع")
+        val Russian    = AppLanguage("ru", "Russian",    "Я")
+        val Vietnamese = AppLanguage("vi", "Vietnamese", "Đ")
+        val Indonesian = AppLanguage("id", "Indonesian", "In")
+        val Turkish    = AppLanguage("tr", "Turkish",    "Ğ")
+
+        val Supported = listOf(
+            English, Hindi, Telugu, Tamil, Bengali, Marathi, Thai,
+            Spanish, French, German, Italian, Portuguese,
+            Japanese, Korean, Chinese, Arabic, Russian,
+            Vietnamese, Indonesian, Turkish,
+        )
+
+        fun fromCode(code: String): AppLanguage? = Supported.firstOrNull { it.code == code }
     }
 }
 

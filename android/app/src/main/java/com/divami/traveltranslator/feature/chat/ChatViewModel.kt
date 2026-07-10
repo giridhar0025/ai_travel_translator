@@ -66,8 +66,16 @@ class ChatViewModel @Inject constructor(
 
     fun onInputChange(text: String) = _state.update { it.copy(input = text) }
     fun onContextChange(mode: ContextMode) = _state.update { it.copy(contextMode = mode) }
-    fun onSourceLanguageChange(lang: AppLanguage) = _state.update { it.copy(sourceLanguage = lang) }
-    fun onTargetLanguageChange(lang: AppLanguage) = _state.update { it.copy(targetLanguage = lang) }
+    // Same-language pairs are impossible: picking the language already selected
+    // on the other side swaps the pair instead (the picker UI also hides it).
+    fun onSourceLanguageChange(lang: AppLanguage) = _state.update {
+        if (lang == it.targetLanguage) it.copy(sourceLanguage = lang, targetLanguage = it.sourceLanguage)
+        else it.copy(sourceLanguage = lang)
+    }
+    fun onTargetLanguageChange(lang: AppLanguage) = _state.update {
+        if (lang == it.sourceLanguage) it.copy(targetLanguage = lang, sourceLanguage = it.targetLanguage)
+        else it.copy(targetLanguage = lang)
+    }
     fun swapLanguages() = _state.update {
         it.copy(sourceLanguage = it.targetLanguage, targetLanguage = it.sourceLanguage)
     }
@@ -94,10 +102,22 @@ class ChatViewModel @Inject constructor(
         it.copy(flippedIds = next)
     }
 
-    /** Sets the target language from a language code (e.g. from onboarding), before any chatting. */
+    /**
+     * Applies the user's preferred language (onboarding / Settings) before any
+     * chatting. The preference is the language the user *speaks*, so it becomes
+     * the SOURCE side. If it collides with the current target, the old source
+     * takes the target slot — the pair can never be same-language (this was the
+     * "English → English" bug: the preference used to overwrite the target).
+     */
     fun applyPreferredLanguage(code: String) {
-        AppLanguage.Supported.firstOrNull { it.code == code }?.let { lang ->
-            _state.update { if (it.messages.isEmpty()) it.copy(targetLanguage = lang) else it }
+        AppLanguage.fromCode(code)?.let { lang ->
+            _state.update {
+                when {
+                    it.messages.isNotEmpty() -> it
+                    lang == it.targetLanguage -> it.copy(sourceLanguage = lang, targetLanguage = it.sourceLanguage)
+                    else -> it.copy(sourceLanguage = lang)
+                }
+            }
         }
     }
 

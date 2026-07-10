@@ -68,10 +68,11 @@ class AudioPlayerViewModel @Inject constructor(
         stopInternal()
         _state.update { it.copy(preparing = true, playing = false, error = null) }
 
-        // Hindi/Telugu/Thai: use the on-device engine directly. The backend's
-        // Replicate (chatterbox) voice is English-centric and renders these
-        // inconsistently on cold start; the device engines are consistent.
-        if (languageCode in ON_DEVICE_TTS_LANGS) {
+        // Everything except English: use the on-device engine directly. The
+        // backend's Replicate (chatterbox) voice is English-centric and renders
+        // other languages inconsistently (or 415s outright); the device engines
+        // are consistent and cover the full supported-language list.
+        if (languageCode != SERVER_TTS_LANG) {
             speakOnDevice(text, languageCode, slow)
             return
         }
@@ -194,10 +195,9 @@ class AudioPlayerViewModel @Inject constructor(
 
     private companion object {
         /**
-         * Languages spoken by the on-device TTS engine rather than the backend.
-         * Telugu/Thai have no server-side voice; Hindi's server voice (chatterbox)
-         * is inconsistent, so it's routed on-device too.
+         * The only language whose backend (chatterbox) voice is validated.
+         * Every other language speaks via the on-device engine.
          */
-        val ON_DEVICE_TTS_LANGS = setOf("hi", "te", "th")
+        const val SERVER_TTS_LANG = "en"
     }
 }

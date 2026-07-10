@@ -157,7 +157,7 @@ def test_phrases_unknown_category_returns_404(client: TestClient) -> None:
 
 
 def test_phrases_unsupported_target_returns_400(client: TestClient) -> None:
-    r = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "fr"})
+    r = client.get("/api/v1/phrases", params={"category": "restaurants", "target": "xx"})
     assert r.status_code == 400
 
 

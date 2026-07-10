@@ -50,8 +50,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.components.AppLanguage
 import com.divami.traveltranslator.designsystem.components.CoralButton
 import com.divami.traveltranslator.designsystem.components.CoralButtonVariant
 import com.divami.traveltranslator.designsystem.components.RadioCard
@@ -82,12 +85,9 @@ private val Slides = listOf(
 
 private data class LanguageOption(val name: String, val available: Boolean, val note: String? = null)
 
-private val Languages = listOf(
-    LanguageOption("English", true),
-    LanguageOption("Hindi", true),
-    LanguageOption("Telugu", false, "Coming soon"),
-    LanguageOption("Thai", true),
-)
+// Derived from the app-wide supported list so onboarding never drifts from
+// what the chat/settings pickers offer.
+private val Languages = AppLanguage.Supported.map { LanguageOption(it.displayName, true) }
 
 // NOTE(audit-#3): AppNavHost still calls onComplete without arg; update callsite separately
 @Composable
@@ -295,6 +295,7 @@ private fun LanguageStep(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = DesignTokens.Spacing.S6),
             verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
         ) {

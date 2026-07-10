@@ -107,14 +107,14 @@ async def test_translate_context_goes_into_system_prompt() -> None:
 async def test_translate_unsupported_source_raises() -> None:
     svc = _service(_FakeHFClient())
     with pytest.raises(UnsupportedLanguageError):
-        await svc.translate("fr", "hi", "Hello")
+        await svc.translate("xx", "hi", "Hello")
 
 
 @pytest.mark.asyncio
 async def test_translate_unsupported_target_raises() -> None:
     svc = _service(_FakeHFClient())
     with pytest.raises(UnsupportedLanguageError):
-        await svc.translate("en", "fr", "Hello")
+        await svc.translate("en", "xx", "Hello")
 
 
 @pytest.mark.asyncio

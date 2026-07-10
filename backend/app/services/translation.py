@@ -27,21 +27,50 @@ from app.services.hf_client import HuggingFaceClient, get_hf_client
 # Cache key: (source, target, text, context)
 CacheKey = tuple[str, str, str, str | None]
 
-SUPPORTED_LANGUAGES: frozenset[str] = frozenset({"en", "hi", "te", "th"})
-
-# Human-readable names fed to the LLM prompt.
+# Human-readable names fed to the LLM prompt. This is the single source of
+# truth for which languages the app supports — the Android AppLanguage list
+# and the DB language seed (scripts/seed_phrases.py) must stay in sync with it.
 LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
     "hi": "Hindi",
     "te": "Telugu",
+    "ta": "Tamil",
+    "bn": "Bengali",
+    "mr": "Marathi",
     "th": "Thai",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+    "ar": "Arabic",
+    "ru": "Russian",
+    "vi": "Vietnamese",
+    "id": "Indonesian",
+    "tr": "Turkish",
 }
 
-# epitran ISO mapping for the langs whose IPA we want
+SUPPORTED_LANGUAGES: frozenset[str] = frozenset(LANGUAGE_NAMES)
+
+# epitran ISO mapping for the non-Latin-script targets whose IPA we want.
+# Latin-script targets (es/fr/de/...) are readable as-is and intentionally have
+# no entry (derive_pronunciation returns None). Japanese and Chinese are also
+# absent: epitran can't transliterate mixed kanji/hanzi text without extra
+# dictionaries, and _epitran_for degrades to None safely. Arabic is absent too:
+# epitran on unvocalized Arabic yields garbled output (raw script chars mixed
+# into the IPA), which is worse than no guide at all.
 EPITRAN_CODES: dict[str, str] = {
     "hi": "hin-Deva",
     "te": "tel-Telu",
+    "ta": "tam-Taml",
+    "bn": "ben-Beng",
+    "mr": "mar-Deva",
     "th": "tha-Thai",
+    "ko": "kor-Hang",
+    "ru": "rus-Cyrl",
 }
 
 
@@ -78,7 +107,7 @@ class StreamDone:
 StreamEvent = StreamDelta | StreamDone
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=len(EPITRAN_CODES))
 def _epitran_for(lang_code: str) -> Any | None:
     code = EPITRAN_CODES.get(lang_code)
     if code is None:

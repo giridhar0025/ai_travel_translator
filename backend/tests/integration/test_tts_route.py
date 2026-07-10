@@ -150,12 +150,12 @@ def test_synthesize_unsupported_language_returns_415(client: TestClient) -> None
         r = client.post(
             "/api/v1/tts/synthesize",
             headers=headers,
-            json={"text": "Bonjour", "language": "fr"},
+            json={"text": "Bonjour", "language": "xx"},
         )
         assert r.status_code == 415
         body = r.json()
         assert body["detail"]["detail"] == "unsupported_language"
-        assert body["detail"]["language"] == "fr"
+        assert body["detail"]["language"] == "xx"
     finally:
         client.delete("/api/v1/me", headers=headers)
 

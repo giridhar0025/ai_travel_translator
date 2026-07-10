@@ -68,9 +68,9 @@ def test_create_duplicate_favorite_returns_409(client: TestClient, headers: dict
 
 
 def test_create_favorite_rejects_unknown_lang(client: TestClient, headers: dict[str, str]) -> None:
-    r = client.post("/api/v1/favorites", headers=headers, json=_payload(target_lang="fr"))
+    r = client.post("/api/v1/favorites", headers=headers, json=_payload(target_lang="xx"))
     assert r.status_code == 400
-    assert "fr" in r.json()["detail"]
+    assert "xx" in r.json()["detail"]
 
 
 def test_create_favorite_rejects_unknown_kind(client: TestClient, headers: dict[str, str]) -> None:

@@ -134,7 +134,7 @@ def test_translate_400_on_unsupported_language(client: TestClient) -> None:
         r = client.post(
             "/api/v1/translate",
             headers=headers,
-            json={"source": "fr", "target": "hi", "text": "Bonjour"},
+            json={"source": "xx", "target": "hi", "text": "Bonjour"},
         )
         assert r.status_code == 400
     finally:

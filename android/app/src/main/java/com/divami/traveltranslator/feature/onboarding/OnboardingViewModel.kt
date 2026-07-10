@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.divami.traveltranslator.data.local.SessionStore
 import com.divami.traveltranslator.data.repository.SettingsRepository
+import com.divami.traveltranslator.designsystem.components.AppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,7 +22,8 @@ class OnboardingViewModel @Inject constructor(
 
     /** Maps an onboarding display name (e.g. "Hindi") to its backend code. */
     fun complete(languageDisplayName: String, onDone: () -> Unit) {
-        val code = LANGUAGE_CODES[languageDisplayName] ?: DEFAULT_CODE
+        val code = AppLanguage.Supported
+            .firstOrNull { it.displayName == languageDisplayName }?.code ?: DEFAULT_CODE
         viewModelScope.launch {
             // Persist the choice locally and flip the onboarding flag, then
             // navigate immediately. These are fast local writes, so the user
@@ -38,11 +40,5 @@ class OnboardingViewModel @Inject constructor(
 
     private companion object {
         const val DEFAULT_CODE = "en"
-        val LANGUAGE_CODES = mapOf(
-            "English" to "en",
-            "Hindi" to "hi",
-            "Telugu" to "te",
-            "Thai" to "th",
-        )
     }
 }

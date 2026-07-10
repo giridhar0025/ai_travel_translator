@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Public
@@ -31,7 +33,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
@@ -129,57 +130,44 @@ fun LanguageSelectorBar(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = DesignTokens.Spacing.S3),
             )
-            AppLanguage.Supported.forEach { lang ->
-                val selected = lang == (if (currentMode == PickerMode.Source) source else target)
+            // The language already chosen on the opposite picker is excluded from
+            // the list entirely — you can never build a same-language pair (e.g.
+            // English → English). Use the swap button to flip the direction.
+            val otherSide = if (currentMode == PickerMode.Source) target else source
+            val options = AppLanguage.Supported.filter { it != otherSide }
 
-                // #19: "other side" is the language already chosen on the opposite picker.
-                // Auto-swap UX: if the user picks a language that conflicts with the other side,
-                // we call onSwap() first to flip the pair and then apply the pick, giving a
-                // smooth "swap on conflict" rather than blocking the selection with a disabled row.
-                val otherSide = if (currentMode == PickerMode.Source) target else source
-                val isConflict = lang == otherSide
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                options.forEach { lang ->
+                    val selected = lang == (if (currentMode == PickerMode.Source) source else target)
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            if (isConflict) {
-                                // #19: conflict → auto-swap so source/target pair flips cleanly
-                                onSwap()
-                            } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
                                 if (currentMode == PickerMode.Source) onSourceChange(lang)
                                 else onTargetChange(lang)
+                                picker = null
                             }
-                            picker = null
-                        }
-                        .padding(vertical = DesignTokens.Spacing.S3),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
-                ) {
-                    // Monogram chip — compact mode, dimmed when conflict
-                    LanguageFlag(
-                        language = lang,
-                        compact = true,
-                        modifier = if (isConflict) Modifier.alpha(0.38f) else Modifier,
-                    )
-                    Text(
-                        text = lang.displayName,
-                        color = when {
-                            selected    -> colors.primary
-                            isConflict  -> colors.foreground.copy(alpha = 0.38f)
-                            else        -> colors.foreground
-                        },
-                        fontSize = DesignTokens.Typography.Size.Base,
-                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (selected) {
-                        Icon(
-                            imageVector = Icons.Outlined.Check,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(20.dp),
+                            .padding(vertical = DesignTokens.Spacing.S3),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
+                    ) {
+                        LanguageFlag(language = lang, compact = true)
+                        Text(
+                            text = lang.displayName,
+                            color = if (selected) colors.primary else colors.foreground,
+                            fontSize = DesignTokens.Typography.Size.Base,
+                            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                            modifier = Modifier.weight(1f),
                         )
+                        if (selected) {
+                            Icon(
+                                imageVector = Icons.Outlined.Check,
+                                contentDescription = null,
+                                tint = colors.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                 }
             }

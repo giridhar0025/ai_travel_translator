@@ -59,8 +59,8 @@ async def test_synthesize_telugu_raises_client_side_required() -> None:
 async def test_synthesize_unsupported_language_raises() -> None:
     svc = TTSService(_FakeHFClient(audio=b""))  # type: ignore[arg-type]
     with pytest.raises(UnsupportedLanguageError) as exc:
-        await svc.synthesize("Bonjour", language="fr")
-    assert exc.value.language == "fr"
+        await svc.synthesize("Bonjour", language="xx")
+    assert exc.value.language == "xx"
 
 
 @pytest.mark.asyncio
