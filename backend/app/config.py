@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     hf_timeout_seconds: float = 90.0
     hf_model_translate: str = "facebook/m2m100_418M"
     hf_model_stt: str = "openai/whisper-large-v3"
+    # STT runs through this HF Inference provider's OpenAI-compatible
+    # /v1/audio/transcriptions endpoint. The default `hf-inference` provider for
+    # Whisper hangs/500s, so we route to `together`, which serves whisper-large-v3
+    # reliably (sub-second).
+    hf_stt_provider: str = "together"
     # TTS runs via Replicate (HF router) on chatterbox-turbo — see
     # app/services/tts.py. Telugu and Thai have no server-side TTS;
     # the mobile clients fall back to their on-device engines.

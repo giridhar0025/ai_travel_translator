@@ -24,26 +24,37 @@ class TranscriptionResult:
 
 
 class STTService:
-    def __init__(self, hf: HuggingFaceClient, model: str) -> None:
+    def __init__(self, hf: HuggingFaceClient, model: str, provider: str = "together") -> None:
         self.hf = hf
         self.model = model
+        self.provider = provider
 
     async def transcribe(
         self,
         audio_bytes: bytes,
         language: str | None = None,
         content_type: str = "audio/wav",
+        filename: str = "audio",
     ) -> TranscriptionResult:
         start = time.monotonic()
-        raw = await self.hf.infer(self.model, content=audio_bytes, content_type=content_type)
+        raw = await self.hf.transcribe_openai(
+            provider=self.provider,
+            model=self.model,
+            audio_bytes=audio_bytes,
+            content_type=content_type,
+            filename=filename,
+        )
         latency_ms = int((time.monotonic() - start) * 1000)
 
-        # Whisper on hf-inference returns {"text": "..."}
+        # OpenAI-compatible ASR returns {"text": "...", "language": "en", ...}
         transcript = str(raw.get("text", "")).strip() if isinstance(raw, dict) else str(raw).strip()
+        detected = raw.get("language") if isinstance(raw, dict) else None
 
         return TranscriptionResult(
             transcript=transcript,
-            language=language,
+            # Prefer the client's hint (drives the UI's next translation direction);
+            # fall back to the provider's detected language.
+            language=language or detected,
             confidence=None,  # not returned by the router
             latency_ms=latency_ms,
             model=self.model,
@@ -57,7 +68,7 @@ def get_stt_service() -> STTService:
     global _service
     if _service is None:
         settings = get_settings()
-        _service = STTService(get_hf_client(), settings.hf_model_stt)
+        _service = STTService(get_hf_client(), settings.hf_model_stt, settings.hf_stt_provider)
     return _service
 
 

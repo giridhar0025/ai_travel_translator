@@ -6,39 +6,59 @@ from app.services.stt import STTService
 class _FakeHFClient:
     def __init__(self, response):
         self.response = response
-        self.calls: list[tuple] = []
+        self.calls: list[dict] = []
 
-    async def infer(
+    async def transcribe_openai(
         self,
-        model,
         *,
-        json_payload=None,
-        content=None,
+        provider,
+        model,
+        audio_bytes,
         content_type="audio/wav",
-        raw=False,
-        max_retries=3,
+        filename="audio",
+        max_retries=2,
     ):
-        self.calls.append((model, json_payload, content, content_type, raw))
+        self.calls.append(
+            {
+                "provider": provider,
+                "model": model,
+                "audio_bytes": audio_bytes,
+                "content_type": content_type,
+                "filename": filename,
+            }
+        )
         return self.response
 
 
 @pytest.mark.asyncio
 async def test_transcribe_returns_result() -> None:
-    fake = _FakeHFClient(response={"text": " Hello, how are you?"})
-    svc = STTService(fake, "openai/whisper-large-v3")  # type: ignore[arg-type]
+    fake = _FakeHFClient(response={"text": " Hello, how are you?", "language": "en"})
+    svc = STTService(fake, "openai/whisper-large-v3", "together")  # type: ignore[arg-type]
 
-    result = await svc.transcribe(b"<audio bytes>", language="en")
+    result = await svc.transcribe(b"<audio bytes>", language="en", content_type="audio/mp4")
 
     assert result.transcript == "Hello, how are you?"  # stripped
     assert result.language == "en"
     assert result.confidence is None
     assert result.model == "openai/whisper-large-v3"
     assert result.latency_ms >= 0
-    model, payload, content, content_type, _ = fake.calls[0]
-    assert model == "openai/whisper-large-v3"
-    assert payload is None
-    assert content == b"<audio bytes>"
-    assert content_type == "audio/wav"
+    call = fake.calls[0]
+    assert call["provider"] == "together"
+    assert call["model"] == "openai/whisper-large-v3"
+    assert call["audio_bytes"] == b"<audio bytes>"
+    assert call["content_type"] == "audio/mp4"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_falls_back_to_detected_language() -> None:
+    fake = _FakeHFClient(response={"text": "hola", "language": "es"})
+    svc = STTService(fake, "m")  # type: ignore[arg-type]
+
+    result = await svc.transcribe(b"x")
+
+    # No client hint → use the provider's detected language.
+    assert result.transcript == "hola"
+    assert result.language == "es"
 
 
 @pytest.mark.asyncio

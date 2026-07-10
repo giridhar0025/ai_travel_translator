@@ -106,6 +106,49 @@ class HuggingFaceClient:
             )
         return audio_resp.content
 
+    async def transcribe_openai(
+        self,
+        *,
+        provider: str,
+        model: str,
+        audio_bytes: bytes,
+        content_type: str = "audio/wav",
+        filename: str = "audio",
+        max_retries: int = 2,
+    ) -> dict[str, Any]:
+        """Transcribe audio via a provider's OpenAI-compatible
+        `/v1/audio/transcriptions` endpoint on the HF router.
+
+        Used instead of the raw-bytes `hf-inference` path because that provider's
+        Whisper endpoint hangs and 500s; `together` serves whisper-large-v3
+        reliably. Sends multipart (`file` + `model`) and returns the parsed JSON
+        (`{"text": ..., "language": ...}`). Retries on 503 (cold start)."""
+        url = f"{HF_ROUTER_ROOT}/{provider}/v1/audio/transcriptions"
+        backoff = 1.0
+        last_text = ""
+
+        for attempt in range(max_retries + 1):
+            response = await self._client.post(
+                url,
+                files={"file": (filename, audio_bytes, content_type)},
+                data={"model": model},
+            )
+
+            if response.status_code == 503:
+                last_text = response.text[:200]
+                if attempt < max_retries:
+                    await asyncio.sleep(backoff)
+                    backoff *= 2
+                    continue
+                break
+
+            if response.status_code >= 400:
+                raise HFInferenceError(f"HF ASR {response.status_code}: {response.text[:200]}")
+
+            return response.json()
+
+        raise HFInferenceError(f"max retries exceeded — last status 503: {last_text}")
+
     async def infer(
         self,
         model: str,

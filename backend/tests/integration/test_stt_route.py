@@ -40,9 +40,9 @@ def test_transcribe_requires_auth(client: TestClient) -> None:
 def test_transcribe_happy_path(client: TestClient) -> None:
     headers = _guest_headers(client)
     try:
-        with respx.mock(base_url="https://router.huggingface.co/hf-inference") as mock:
-            mock.post("/models/openai/whisper-large-v3").mock(
-                return_value=Response(200, json={"text": " Hello world"})
+        with respx.mock(base_url="https://router.huggingface.co/together") as mock:
+            mock.post("/v1/audio/transcriptions").mock(
+                return_value=Response(200, json={"text": " Hello world", "language": "en"})
             )
             r = client.post(
                 "/api/v1/stt/transcribe",

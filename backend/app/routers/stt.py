@@ -77,6 +77,7 @@ async def transcribe(
         content,
         language,
         content_type=audio.content_type or "audio/wav",
+        filename=audio.filename or "audio",
     )
     return TranscriptionResponse(
         transcript=result.transcript,
