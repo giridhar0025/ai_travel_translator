@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import com.divami.traveltranslator.LocalImeVisible
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,7 +57,11 @@ fun MainScaffold(
     var showVoiceInput by rememberSaveable { mutableStateOf(false) }
     var showMicDeniedSheet by rememberSaveable { mutableStateOf(false) }
     val systemInsets = WindowInsets.systemBars.asPaddingValues()
+    // IME visibility is read once at the root (MainActivity) and provided here,
+    // so reading it can't feed back into the root imePadding.
+    val imeVisible = LocalImeVisible.current
     val chatViewModel: ChatViewModel = hiltViewModel()
+    val chatState by chatViewModel.state.collectAsState()
 
     fun micPermissionGranted() = ContextCompat.checkSelfPermission(
         context,
@@ -72,7 +78,11 @@ fun MainScaffold(
         Scaffold(
             containerColor = colors.background,
             bottomBar = {
-                BottomNavBar(selected = selected, onSelect = { selected = it })
+                // Hide the bottom nav while typing so the chat input lands flush on
+                // the keyboard (the root imePadding lifts the content).
+                if (!imeVisible) {
+                    BottomNavBar(selected = selected, onSelect = { selected = it })
+                }
             },
         ) { padding ->
             val contentPadding = PaddingValues(
@@ -112,6 +122,8 @@ fun MainScaffold(
 
         if (showVoiceInput) {
             VoiceInputScreen(
+                // Hint STT with the current source language for better accuracy.
+                languageCode = chatState.sourceLanguage.code,
                 onBack = { showVoiceInput = false },
                 onTranslate = { transcript ->
                     chatViewModel.onInputChange(transcript)

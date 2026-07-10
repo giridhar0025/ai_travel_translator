@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -95,6 +98,8 @@ fun EmailLoginScreen(
         Column(
             modifier = Modifier
                 .weight(1f)
+                // Scrollable so fields/button aren't clipped on short screens or landscape.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = DesignTokens.Spacing.S6),
             verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
         ) {
@@ -158,7 +163,7 @@ fun EmailLoginScreen(
                     fontSize = DesignTokens.Typography.Size.Sm,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
-                        .clickable(onClick = onForgotPassword)
+                        .clickable(role = Role.Button, onClick = onForgotPassword)
                         .padding(DesignTokens.Spacing.S2),
                 )
             }
@@ -196,7 +201,7 @@ fun EmailLoginScreen(
                 color = colors.primary,
                 fontSize = DesignTokens.Typography.Size.Sm,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable(onClick = onSignUp),
+                modifier = Modifier.clickable(role = Role.Button, onClick = onSignUp),
             )
         }
     }

@@ -48,3 +48,6 @@ android/captures/
 # Signing keystores (never commit)
 *.jks
 *.keystore
+
+# Local debug artifacts (screenshots, ui dumps)
+.debug/

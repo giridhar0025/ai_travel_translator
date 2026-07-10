@@ -19,6 +19,8 @@ data class Session(
     val account: Account?,
     val hasSeenWelcome: Boolean,
     val hasOnboarded: Boolean,
+    /** User's preferred default (target) language code, e.g. "hi". Null until chosen. */
+    val defaultLanguage: String?,
 ) {
     val isAuthenticated: Boolean get() = !token.isNullOrBlank()
 }
@@ -58,6 +60,12 @@ class SessionStore @Inject constructor(
     suspend fun setHasOnboarded(value: Boolean) =
         dataStore.editFlag(KEY_HAS_ONBOARDED, value)
 
+    /** Persists the user's preferred default (target) language locally so the
+     *  chat can honor the onboarding/settings choice instantly and offline. */
+    suspend fun setDefaultLanguage(code: String) {
+        dataStore.edit { it[KEY_DEFAULT_LANGUAGE] = code }
+    }
+
     /** Clears the token + profile but keeps first-run flags (logout ≠ reinstall). */
     suspend fun clearAuth() {
         dataStore.edit { prefs ->
@@ -89,6 +97,7 @@ class SessionStore @Inject constructor(
             account = account,
             hasSeenWelcome = this[KEY_HAS_SEEN_WELCOME] ?: false,
             hasOnboarded = this[KEY_HAS_ONBOARDED] ?: false,
+            defaultLanguage = this[KEY_DEFAULT_LANGUAGE],
         )
     }
 
@@ -105,5 +114,6 @@ class SessionStore @Inject constructor(
         val KEY_IS_GUEST = booleanPreferencesKey("is_guest")
         val KEY_HAS_SEEN_WELCOME = booleanPreferencesKey("has_seen_welcome")
         val KEY_HAS_ONBOARDED = booleanPreferencesKey("has_onboarded")
+        val KEY_DEFAULT_LANGUAGE = stringPreferencesKey("default_language")
     }
 }

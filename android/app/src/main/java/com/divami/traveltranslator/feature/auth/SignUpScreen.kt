@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -115,6 +118,8 @@ fun SignUpScreen(
         Column(
             modifier = Modifier
                 .weight(1f)
+                // Scrollable — this screen has the most vertical content.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = DesignTokens.Spacing.S6),
             verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
         ) {
@@ -224,7 +229,7 @@ fun SignUpScreen(
                 color = colors.primary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { showTermsSheet = true },
+                modifier = Modifier.clickable(role = Role.Button) { showTermsSheet = true },
             )
             Text(
                 text = " and ",
@@ -236,7 +241,7 @@ fun SignUpScreen(
                 color = colors.primary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { showPrivacySheet = true },
+                modifier = Modifier.clickable(role = Role.Button) { showPrivacySheet = true },
             )
         }
     }

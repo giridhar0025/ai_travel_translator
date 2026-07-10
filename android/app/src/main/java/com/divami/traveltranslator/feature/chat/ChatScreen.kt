@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Mic
@@ -100,6 +101,11 @@ fun ChatScreen(
                 .background(colors.background)
                 .padding(top = contentPadding.calculateTopPadding()),
         ) {
+            ChatTopBar(
+                onNewChat = viewModel::newConversation,
+                canClear = state.messages.isNotEmpty(),
+            )
+
             LanguageSelectorBar(
                 source = state.sourceLanguage,
                 target = state.targetLanguage,
@@ -247,13 +253,59 @@ fun ChatScreen(
                 pronunciation = req.message.pronunciation,
                 languageCode = req.message.translatedLanguage.code,
                 initialSlow = req.slow,
-                initialPlay = req.slow,
+                // Both the Play and Slow chips should speak immediately.
+                initialPlay = true,
             )
         }
     }
 }
 
 private data class PlayerRequest(val message: ChatMessage, val slow: Boolean)
+
+@Composable
+private fun ChatTopBar(
+    onNewChat: () -> Unit,
+    canClear: Boolean,
+) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.card)
+            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Conversation",
+            color = colors.foreground,
+            fontSize = DesignTokens.Typography.Size.Lg,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
+                .background(if (canClear) colors.primaryLight else colors.muted)
+                .clickable(enabled = canClear, onClick = onNewChat)
+                .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Add,
+                contentDescription = "New chat",
+                tint = if (canClear) colors.primary else colors.textSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = "New",
+                color = if (canClear) colors.primary else colors.textSecondary,
+                fontSize = DesignTokens.Typography.Size.Sm,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
 
 @Composable
 private fun ChatInputArea(
@@ -269,6 +321,8 @@ private fun ChatInputArea(
     val colors = AppTheme.colors
     val canSend = input.isNotBlank()
 
+    // Classic adjustResize (no edge-to-edge): the window physically shrinks above
+    // the keyboard, so this row rises with it. bottomPadding clears the nav bar.
     Column(
         modifier = Modifier
             .fillMaxWidth()

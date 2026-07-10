@@ -48,14 +48,16 @@ private fun ContextChip(
     val colors = AppTheme.colors
     val shape = RoundedCornerShape(DesignTokens.Radius.Md)
 
-    val (bg, fg) = when {
-        !selected -> colors.muted to colors.textSecondary
-        mode == ContextMode.Formal -> Color(0xFF3B82F6).copy(alpha = 0.12f) to Color(0xFF2563EB)
-        mode == ContextMode.Tourist -> DesignTokens.Brand.Amber.copy(alpha = 0.12f) to DesignTokens.Brand.Amber
-        else -> colors.muted to colors.foreground // Casual
+    // Matches the reference: selected chip is solid coral with white text for
+    // every mode (Casual/Formal/Tourist), so the active mode is always obvious.
+    // Unselected chips are muted. No hardcoded brand colors.
+    val (bg, fg) = if (selected) {
+        colors.primary to colors.onPrimary
+    } else {
+        colors.muted to colors.textSecondary
     }
 
-    val borderColor = if (selected) fg.copy(alpha = 0.3f) else Color.Transparent
+    val borderColor = Color.Transparent
 
     Row(
         modifier = Modifier

@@ -3,6 +3,7 @@ package com.divami.traveltranslator.feature.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.divami.traveltranslator.core.network.ApiResult
+import com.divami.traveltranslator.data.local.SessionStore
 import com.divami.traveltranslator.data.repository.ConversationRepository
 import com.divami.traveltranslator.data.repository.TranslationRepository
 import com.divami.traveltranslator.designsystem.components.AppLanguage
@@ -35,6 +36,7 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val translationRepository: TranslationRepository,
     private val conversationRepository: ConversationRepository,
+    private val sessionStore: SessionStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ChatUiState())
@@ -42,6 +44,22 @@ class ChatViewModel @Inject constructor(
 
     /** Lazily-created conversation id; persistence is a nice-to-have, never blocks translation. */
     private var conversationId: String? = null
+
+    /**
+     * The language spoken by "me" (this side of the conversation). Anchored to the
+     * source language of the first message in a conversation. Messages spoken in
+     * this language render on the right (You); the other language renders on the
+     * left (OtherPerson) — so swapping the direction flips the bubble's side.
+     */
+    private var homeLanguageCode: String? = null
+
+    init {
+        // Honor the language chosen during onboarding / in Settings so the chat
+        // opens with the user's preferred target language rather than the default.
+        viewModelScope.launch {
+            sessionStore.currentSession().defaultLanguage?.let(::applyPreferredLanguage)
+        }
+    }
 
     fun onInputChange(text: String) = _state.update { it.copy(input = text) }
     fun onContextChange(mode: ContextMode) = _state.update { it.copy(contextMode = mode) }
@@ -51,6 +69,22 @@ class ChatViewModel @Inject constructor(
         it.copy(sourceLanguage = it.targetLanguage, targetLanguage = it.sourceLanguage)
     }
     fun dismissError() = _state.update { it.copy(error = null) }
+
+    /** Clears the current conversation and starts fresh, keeping the selected
+     *  languages. The next message re-anchors which side is "me". */
+    fun newConversation() {
+        conversationId = null
+        homeLanguageCode = null
+        _state.update {
+            it.copy(
+                messages = emptyList(),
+                flippedIds = emptySet(),
+                input = "",
+                error = null,
+                isSending = false,
+            )
+        }
+    }
 
     fun toggleFlip(messageId: String) = _state.update {
         val next = it.flippedIds.toMutableSet().apply { if (!add(messageId)) remove(messageId) }
@@ -71,6 +105,11 @@ class ChatViewModel @Inject constructor(
         val tgt = _state.value.targetLanguage
         val contextHint = _state.value.contextMode.label
 
+        // Anchor "my" language on the first message, then place each message by
+        // its source language so swapping the direction flips it to the other side.
+        if (homeLanguageCode == null) homeLanguageCode = src.code
+        val sender = if (src.code == homeLanguageCode) Sender.You else Sender.OtherPerson
+
         _state.update { it.copy(input = "", isSending = true, error = null) }
 
         viewModelScope.launch {
@@ -78,7 +117,7 @@ class ChatViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val message = ChatMessage(
                         id = "msg-${text.hashCode()}-${_state.value.messages.size}",
-                        sender = Sender.You,
+                        sender = sender,
                         originalText = text,
                         originalLanguage = src,
                         translatedText = result.data.translation,
@@ -89,8 +128,15 @@ class ChatViewModel @Inject constructor(
                     persist(text, src, tgt, result.data.translation, result.data.pronunciation)
                 }
                 is ApiResult.Failure -> {
-                    // Restore the text so the user doesn't lose it, and surface the error.
-                    _state.update { it.copy(input = text, isSending = false, error = result.error.message) }
+                    // Restore the text so the user doesn't lose it — but not if
+                    // they've already started typing something new.
+                    _state.update {
+                        it.copy(
+                            input = if (it.input.isBlank()) text else it.input,
+                            isSending = false,
+                            error = result.error.message,
+                        )
+                    }
                 }
             }
         }

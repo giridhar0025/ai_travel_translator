@@ -80,10 +80,12 @@ fun MessageBubble(
             modifier = Modifier
                 .widthIn(max = 320.dp)
                 .clip(bubbleShape)
-                .background(colors.card)
+                // My side is coral-tinted, the other person's is neutral — a clear
+                // two-sided conversation.
+                .background(if (isMine) colors.primaryLight else colors.card)
                 .border(
                     width = 1.dp,
-                    color = colors.border,
+                    color = if (isMine) colors.primary.copy(alpha = 0.25f) else colors.border,
                     shape = bubbleShape,
                 )
                 .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),

@@ -23,10 +23,15 @@ class OnboardingViewModel @Inject constructor(
     fun complete(languageDisplayName: String, onDone: () -> Unit) {
         val code = LANGUAGE_CODES[languageDisplayName] ?: DEFAULT_CODE
         viewModelScope.launch {
-            // Persist the preference; ignore failures (guest offline, etc.) — the
-            // onboarding flag below is what gates the flow.
-            settingsRepository.update(defaultLanguage = code)
+            // Persist the choice locally and flip the onboarding flag, then
+            // navigate immediately. These are fast local writes, so the user
+            // never sits on a frozen screen waiting for the network.
+            sessionStore.setDefaultLanguage(code)
             sessionStore.setHasOnboarded(true)
+            // Best-effort backend sync — must not block navigation. Failures
+            // (guest offline, etc.) are ignored; the local value is what the
+            // app reads.
+            launch { runCatching { settingsRepository.update(defaultLanguage = code) } }
             onDone()
         }
     }

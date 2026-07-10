@@ -1,6 +1,7 @@
 package com.divami.traveltranslator.feature.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -202,7 +204,7 @@ fun LoginScreen(
                 color = colors.primary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { showTermsSheet = true },
+                modifier = Modifier.clickable(role = Role.Button) { showTermsSheet = true },
             )
             Text(
                 text = " and ",
@@ -214,7 +216,7 @@ fun LoginScreen(
                 color = colors.primary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { showPrivacySheet = true },
+                modifier = Modifier.clickable(role = Role.Button) { showPrivacySheet = true },
             )
         }
     }
@@ -264,12 +266,15 @@ private fun BlackPillButton(
     isLoading: Boolean = false,
     enabled: Boolean = true,
 ) {
+    val colors = AppTheme.colors
     val shape = RoundedCornerShape(DesignTokens.Radius.Lg)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(if (enabled) Color.Black else Color(0xFF444444))
+            // Border gives the black pill a visible edge against the dark theme background.
+            .border(width = 1.dp, color = colors.border, shape = shape)
             .clickable(enabled = enabled && !isLoading, onClick = onClick)
             .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S4),
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2, Alignment.CenterHorizontally),

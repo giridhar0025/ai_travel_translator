@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -50,6 +52,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,12 +85,28 @@ fun VoiceInputScreen(
     val insets = WindowInsets.systemBars.asPaddingValues()
     val state by viewModel.state.collectAsState()
 
-    val micGranted = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.RECORD_AUDIO,
-    ) == PackageManager.PERMISSION_GRANTED
+    // Reactive so the UI updates the moment permission is granted (via the
+    // in-screen request below or after returning from system settings).
+    var micGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
 
-    // Start recording once when the screen opens with permission granted.
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> micGranted = granted }
+
+    // If the screen is ever reached without the mic permission, request it
+    // in-screen instead of dead-ending on the "Open Settings" prompt.
+    LaunchedEffect(Unit) {
+        if (!micGranted) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    // Start recording once permission is present.
     LaunchedEffect(micGranted) {
         if (micGranted) viewModel.startRecording(languageCode)
     }
@@ -100,7 +121,12 @@ fun VoiceInputScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .padding(top = insets.calculateTopPadding(), bottom = insets.calculateBottomPadding()),
+            // adjustResize shrinks the window above the keyboard when editing the
+            // transcript, so no manual IME padding is needed (it would double the gap).
+            .padding(
+                top = insets.calculateTopPadding(),
+                bottom = insets.calculateBottomPadding(),
+            ),
     ) {
         Header(onBack = dismiss)
 

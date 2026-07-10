@@ -35,7 +35,8 @@ data class GroupInfoDto(
 data class ConversationsListResponseDto(
     val items: List<ConversationDto>,
     val nextCursor: String? = null,
-    val groups: List<GroupInfoDto>,
+    // Defaulted so an omitted `groups` field never fails the whole History list.
+    val groups: List<GroupInfoDto> = emptyList(),
 )
 
 @Serializable

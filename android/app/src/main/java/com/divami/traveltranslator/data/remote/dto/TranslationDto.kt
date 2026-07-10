@@ -21,8 +21,10 @@ data class TranslateBatchRequestDto(
 data class TranslateResultDto(
     val translation: String,
     val pronunciation: String? = null,
-    val latencyMs: Int,
-    val model: String,
+    // Diagnostics only (unused by the domain model) — defaulted so their absence
+    // never fails deserialization of an otherwise-valid translation.
+    val latencyMs: Int = 0,
+    val model: String = "",
 )
 
 @Serializable
@@ -35,8 +37,9 @@ data class TranscriptionResponseDto(
     val transcript: String,
     val language: String? = null,
     val confidence: Double? = null,
-    val latencyMs: Int,
-    val model: String,
+    // Diagnostics only — defaulted so their absence never fails a valid transcript.
+    val latencyMs: Int = 0,
+    val model: String = "",
 )
 
 @Serializable

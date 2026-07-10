@@ -82,6 +82,9 @@ class SettingsViewModel @Inject constructor(
     fun setDefaultLanguage(code: String) {
         val previous = _state.value.defaultLanguageCode
         _state.update { it.copy(defaultLanguageCode = code) }
+        // Mirror locally so the chat picks up the change (SessionStore is the
+        // source of truth the ChatViewModel reads).
+        viewModelScope.launch { sessionStore.setDefaultLanguage(code) }
         patch(revert = { _state.update { it.copy(defaultLanguageCode = previous) } }) {
             settingsRepository.update(defaultLanguage = code)
         }
