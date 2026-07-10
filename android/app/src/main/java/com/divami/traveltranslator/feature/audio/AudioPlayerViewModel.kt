@@ -47,6 +47,7 @@ class AudioPlayerViewModel @Inject constructor(
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var tempFile: File? = null
+    private var watchdog: kotlinx.coroutines.Job? = null
 
     // An utterance requested before the TTS engine finished initializing; spoken
     // from the init callback once the engine is ready.
@@ -146,24 +147,35 @@ class AudioPlayerViewModel @Inject constructor(
 
     private fun doSpeak(engine: TextToSpeech, text: String, languageCode: String, slow: Boolean) {
         val locale = Locale.forLanguageTag(languageCode)
+        val missingVoiceError = "The ${locale.displayLanguage} voice isn't installed. " +
+            "Add it in your phone's Text-to-speech settings."
         // Set the language and verify the voice is actually installed. If the data
         // is missing we must NOT speak — the engine would render the script with the
         // default (wrong) voice, which is the "random sounds" the user heard.
         val availability = engine.setLanguage(locale)
         if (availability < TextToSpeech.LANG_AVAILABLE) {
             _state.update {
-                it.copy(
-                    preparing = false,
-                    playing = false,
-                    error = "The ${locale.displayLanguage} voice isn't installed. " +
-                        "Add it in your phone's Text-to-speech settings.",
-                )
+                it.copy(preparing = false, playing = false, error = missingVoiceError)
+            }
+            return
+        }
+        // The engine can claim a language is available while its voice data is
+        // still not downloaded. Detecting that up front beats a silent hang.
+        val voice = engine.voice
+        if (voice != null && voice.features?.contains(
+                TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED
+            ) == true
+        ) {
+            _state.update {
+                it.copy(preparing = false, playing = false, error = missingVoiceError)
             }
             return
         }
         engine.setSpeechRate(if (slow) 0.6f else 1.0f)
+        val utteranceId = "tts-${text.hashCode()}"
         engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
+                watchdog?.cancel()
                 _state.update { it.copy(preparing = false, playing = true) }
             }
             override fun onDone(utteranceId: String?) {
@@ -171,14 +183,46 @@ class AudioPlayerViewModel @Inject constructor(
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                _state.update { it.copy(playing = false, error = "Couldn't play audio for this language.") }
+                watchdog?.cancel()
+                _state.update {
+                    it.copy(preparing = false, playing = false, error = "Couldn't play audio for this language.")
+                }
+            }
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                watchdog?.cancel()
+                val message = if (errorCode == TextToSpeech.ERROR_NOT_INSTALLED_YET) {
+                    missingVoiceError
+                } else {
+                    "Couldn't play audio for this language."
+                }
+                _state.update { it.copy(preparing = false, playing = false, error = message) }
             }
         })
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts-${text.hashCode()}")
+        // speak() reports failure via its return value — no listener callback ever
+        // fires — so an unchecked call here is how the spinner used to hang forever.
+        if (engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId) != TextToSpeech.SUCCESS) {
+            _state.update {
+                it.copy(preparing = false, playing = false, error = "Couldn't play audio for this language.")
+            }
+            return
+        }
+        // Belt and braces: if the engine accepts the utterance but never starts it
+        // (e.g. voice data downloading), fail out instead of spinning forever.
+        watchdog?.cancel()
+        watchdog = viewModelScope.launch {
+            kotlinx.coroutines.delay(8_000)
+            if (_state.value.preparing) {
+                _state.update {
+                    it.copy(preparing = false, playing = false, error = missingVoiceError)
+                }
+            }
+        }
     }
 
     private fun stopInternal() {
         pending = null
+        watchdog?.cancel()
+        watchdog = null
         mediaPlayer?.run { runCatching { stop() }; release() }
         mediaPlayer = null
         tts?.stop()
