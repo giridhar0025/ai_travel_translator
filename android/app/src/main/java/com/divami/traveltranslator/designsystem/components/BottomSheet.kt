@@ -2,6 +2,7 @@ package com.divami.traveltranslator.designsystem.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,10 +39,13 @@ fun AppBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // ModalBottomSheet draws edge-to-edge; keep the last row and
+                // any primary action above the gesture/3-button navigation bar.
+                .navigationBarsPadding()
                 .padding(
                     start = DesignTokens.Spacing.S6,
                     end = DesignTokens.Spacing.S6,
-                    top = DesignTokens.Spacing.S2,
+                    top = DesignTokens.Spacing.S4,
                     bottom = DesignTokens.Spacing.S6,
                 ),
         ) {

@@ -14,6 +14,9 @@
     <string name="chat_new_chat">New chat</string>
     <string name="chat_empty_title">Translate anything</string>
     <string name="chat_empty_subtitle">Type or tap the mic to begin</string>
+    <string name="chat_suggestion_train">Where is the train station?</string>
+    <string name="chat_suggestion_allergy">I’m allergic to peanuts</string>
+    <string name="chat_suggestion_price">How much is this?</string>
     <string name="chat_input_hint">Type a message…</string>
     <string name="chat_input_label">Text to translate</string>
     <string name="chat_send_message">Send message</string>
@@ -94,7 +97,10 @@
     <string name="history_deleted">Conversation deleted</string>
     <string name="history_undo">Undo</string>
     <string name="history_delete_action">Delete conversation</string>
-    <string name="history_messages">%1$d messages</string>
+    <plurals name="history_messages">
+        <item quantity="one">%1$d message</item>
+        <item quantity="other">%1$d messages</item>
+    </plurals>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -153,6 +159,7 @@
     <!-- Common -->
     <string name="common_back">Back</string>
     <string name="common_close">Close</string>
+    <string name="search_clear">Clear search</string>
     <string name="common_retry">Retry</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_delete">Delete</string>

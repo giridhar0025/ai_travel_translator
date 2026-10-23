@@ -78,7 +78,10 @@
     <string name="history_undo">వెనక్కి తీసుకోండి</string>
     <string name="history_deleted">సంభాషణ తొలగించబడింది</string>
     <string name="history_delete_action">సంభాషణ తొలగించండి</string>
-    <string name="history_messages">%1$d సందేశాలు</string>
+    <plurals name="history_messages">
+        <item quantity="one">%1$d సందేశం</item>
+        <item quantity="other">%1$d సందేశాలు</item>
+    </plurals>
 
     <string name="settings_title">సెట్టింగ్‌లు</string>
     <string name="settings_account">ఖాతా</string>

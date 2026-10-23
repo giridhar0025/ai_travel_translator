@@ -78,7 +78,10 @@
     <string name="history_undo">เลิกทำ</string>
     <string name="history_deleted">ลบบทสนทนาแล้ว</string>
     <string name="history_delete_action">ลบบทสนทนา</string>
-    <string name="history_messages">%1$d ข้อความ</string>
+    <plurals name="history_messages">
+        <item quantity="one">%1$d ข้อความ</item>
+        <item quantity="other">%1$d ข้อความ</item>
+    </plurals>
 
     <string name="settings_title">การตั้งค่า</string>
     <string name="settings_account">บัญชี</string>

@@ -19,6 +19,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,7 +31,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -87,6 +93,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -247,6 +255,14 @@ fun ChatScreen(
             voiceActive = false
             amplitudes.clear()
             voiceViewModel.clear()
+        }
+    }
+
+    // When an inline error/voice bar appears it shrinks the list viewport.
+    // Keep the newest message visible instead of leaving its bottom clipped.
+    LaunchedEffect(voiceError, state.error) {
+        if ((voiceError != null || state.error != null) && state.messages.isNotEmpty()) {
+            listState.scrollToItem(state.messages.lastIndex)
         }
     }
 
@@ -528,6 +544,7 @@ fun ChatScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EmptyChatState(
     modifier: Modifier = Modifier,
@@ -535,15 +552,17 @@ private fun EmptyChatState(
 ) {
     val colors = AppTheme.colors
     val suggestions = listOf(
-        "Where is the train station?",
-        "I’m allergic to peanuts",
-        "How much is this?",
+        stringResource(R.string.chat_suggestion_train),
+        stringResource(R.string.chat_suggestion_allergy),
+        stringResource(R.string.chat_suggestion_price),
     )
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
-            modifier = Modifier.padding(horizontal = DesignTokens.Spacing.S6),
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S6),
         ) {
             Box(
                 modifier = Modifier
@@ -564,21 +583,26 @@ private fun EmptyChatState(
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Lg,
                 fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = stringResource(R.string.chat_empty_subtitle),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Base,
+                textAlign = TextAlign.Center,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2)) {
-                suggestions.take(2).forEach { phrase ->
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    DesignTokens.Spacing.S2,
+                    Alignment.CenterHorizontally,
+                ),
+                verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+            ) {
+                suggestions.forEach { phrase ->
                     SuggestionChip(phrase = phrase, onClick = { onSuggestion(phrase) })
                 }
             }
-            SuggestionChip(
-                phrase = suggestions.last(),
-                onClick = { onSuggestion(suggestions.last()) },
-            )
         }
     }
 }
@@ -610,13 +634,13 @@ private fun ChatTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.card)
-            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+            .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(R.string.chat_title),
             color = colors.foreground,
-            fontSize = DesignTokens.Typography.Size.Lg,
+            fontSize = DesignTokens.Typography.Size.Xl,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
                 .weight(1f)
@@ -663,7 +687,7 @@ private fun ErrorBar(
             .fillMaxWidth()
             .background(colors.destructive.copy(alpha = 0.12f))
             .semantics { liveRegion = LiveRegionMode.Assertive }
-            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
+            .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
     ) {
@@ -697,6 +721,7 @@ private fun ErrorBar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun VoiceErrorBar(
     message: String,
@@ -710,7 +735,7 @@ private fun VoiceErrorBar(
             .fillMaxWidth()
             .background(colors.destructive.copy(alpha = 0.12f))
             .semantics { liveRegion = LiveRegionMode.Assertive }
-            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
+            .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S2),
     ) {
         Text(
             text = stringResource(R.string.voice_error_title),
@@ -723,9 +748,12 @@ private fun VoiceErrorBar(
             color = colors.destructive,
             fontSize = DesignTokens.Typography.Size.Sm,
         )
-        Row(
-            modifier = Modifier.padding(top = DesignTokens.Spacing.S2),
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = DesignTokens.Spacing.S2),
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+            verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
         ) {
             TextButton(onClick = onRetry) { Text(stringResource(R.string.voice_retry)) }
             TextButton(onClick = onTypeInstead) { Text(stringResource(R.string.voice_type_instead)) }
@@ -803,13 +831,13 @@ private fun ChatInputArea(
             onSelect = onContextChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+                .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S3),
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = DesignTokens.Spacing.S4)
+                .padding(horizontal = DesignTokens.Spacing.S6)
                 .padding(bottom = DesignTokens.Spacing.S4),
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
@@ -848,7 +876,7 @@ private fun RecordingBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = DesignTokens.Spacing.S4)
+            .padding(horizontal = DesignTokens.Spacing.S6)
             .padding(top = DesignTokens.Spacing.S3, bottom = DesignTokens.Spacing.S4),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
@@ -884,6 +912,9 @@ private fun RecordingBar(
                     text = stringResource(R.string.voice_transcribing),
                     color = colors.textSecondary,
                     fontSize = DesignTokens.Typography.Size.Base,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             } else {
                 PulsingDot()
@@ -1065,7 +1096,12 @@ private fun PointToSpeakDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colors.card)
-                .padding(DesignTokens.Spacing.S6),
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(DesignTokens.Spacing.S6)
+                // Dialog windows on some OEM Android builds report no bottom
+                // inset; this keeps the footer clear of 3-button navigation.
+                .padding(bottom = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
@@ -1087,13 +1123,18 @@ private fun PointToSpeakDialog(
                     contentDescription = stringResource(R.string.point_to_speak_close),
                 )
             }
-            Column(
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                contentAlignment = Alignment.Center,
             ) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = DesignTokens.Spacing.S6),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                 Text(
                     text = message.translatedText,
                     color = colors.foreground,
@@ -1117,6 +1158,7 @@ private fun PointToSpeakDialog(
                     fontSize = DesignTokens.Typography.Size.Sm,
                     modifier = Modifier.padding(top = DesignTokens.Spacing.S6),
                 )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),

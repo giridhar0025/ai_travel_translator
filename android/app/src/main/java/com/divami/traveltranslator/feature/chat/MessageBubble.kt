@@ -98,7 +98,7 @@ fun MessageBubble(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = DesignTokens.Spacing.S4),
+            .padding(horizontal = DesignTokens.Spacing.S6),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
     ) {
         Box(
@@ -190,46 +190,59 @@ fun MessageBubble(
                 // Every action is single-tap and at least 48dp. Slow playback is
                 // explicit (long-press remains a shortcut) so switch-access users
                 // can discover and perform it.
-                FlowRow(
+                // Two deliberate rows keep the primary playback actions from
+                // being split awkwardly when the bubble is narrow or text is
+                // scaled up. Every control remains single-tap and 48dp.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
                     verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
                 ) {
-                    PlayChip(
-                        playback = playback,
-                        onClick = onPlayToggle,
-                        onSlow = onSlow,
-                        enabled = message.translatedText.isNotBlank(),
-                    )
-                    SlowChip(
-                        onClick = onSlow,
-                        enabled = message.translatedText.isNotBlank(),
-                    )
-                    BubbleActionIcon(
-                        icon = Icons.Outlined.ContentCopy,
-                        contentDescription = stringResource(R.string.chat_copy_translation),
-                        onClick = onCopy,
-                        enabled = message.translatedText.isNotBlank(),
-                    )
-                    if (isOwnLatest) {
-                        BubbleActionIcon(
-                            icon = Icons.Outlined.Edit,
-                            contentDescription = stringResource(R.string.chat_edit_message),
-                            onClick = onEdit,
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+                        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+                    ) {
+                        PlayChip(
+                            playback = playback,
+                            onClick = onPlayToggle,
+                            onSlow = onSlow,
+                            enabled = message.translatedText.isNotBlank(),
+                        )
+                        SlowChip(
+                            onClick = onSlow,
+                            enabled = message.translatedText.isNotBlank(),
                         )
                     }
-                    if (message.translatedText.isNotBlank()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+                        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+                    ) {
                         BubbleActionIcon(
-                            icon = Icons.Outlined.OpenInFull,
-                            contentDescription = stringResource(R.string.chat_show_to_local),
-                            onClick = onShow,
+                            icon = Icons.Outlined.ContentCopy,
+                            contentDescription = stringResource(R.string.chat_copy_translation),
+                            onClick = onCopy,
+                            enabled = message.translatedText.isNotBlank(),
+                        )
+                        if (isOwnLatest) {
+                            BubbleActionIcon(
+                                icon = Icons.Outlined.Edit,
+                                contentDescription = stringResource(R.string.chat_edit_message),
+                                onClick = onEdit,
+                            )
+                        }
+                        if (message.translatedText.isNotBlank()) {
+                            BubbleActionIcon(
+                                icon = Icons.Outlined.OpenInFull,
+                                contentDescription = stringResource(R.string.chat_show_to_local),
+                                onClick = onShow,
+                            )
+                        }
+                        BubbleActionIcon(
+                            icon = Icons.Outlined.SwapVert,
+                            contentDescription = stringResource(R.string.chat_flip_languages),
+                            onClick = onFlip,
                         )
                     }
-                    BubbleActionIcon(
-                        icon = Icons.Outlined.SwapVert,
-                        contentDescription = stringResource(R.string.chat_flip_languages),
-                        onClick = onFlip,
-                    )
                 }
             }
         }
@@ -246,6 +259,7 @@ private fun PlayChip(
 ) {
     val colors = AppTheme.colors
     val isBusy = playback != PlaybackState.Idle
+    val shape = RoundedCornerShape(DesignTokens.Radius.Sm)
     val label = when (playback) {
         PlaybackState.Playing -> stringResource(R.string.chat_stop)
         PlaybackState.Preparing -> stringResource(R.string.chat_loading)
@@ -255,8 +269,8 @@ private fun PlayChip(
         modifier = Modifier
             .minimumTouchTarget()
             .heightIn(min = DesignTokens.TouchTarget.Min)
-            .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
-            .background(if (isBusy) colors.primary.copy(alpha = 0.18f) else colors.primaryLight)
+            .clip(shape)
+            .background(if (isBusy) colors.primaryDark else colors.primary)
             .combinedClickable(
                 enabled = enabled,
                 onClick = onClick,
@@ -298,12 +312,14 @@ private fun PlayChip(
 @Composable
 private fun SlowChip(onClick: () -> Unit, enabled: Boolean) {
     val colors = AppTheme.colors
+    val shape = RoundedCornerShape(DesignTokens.Radius.Sm)
     Row(
         modifier = Modifier
             .minimumTouchTarget()
             .heightIn(min = DesignTokens.TouchTarget.Min)
-            .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
-            .background(colors.muted)
+            .clip(shape)
+            .background(colors.card)
+            .border(1.dp, colors.borderStrong, shape)
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { role = Role.Button }
             .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
@@ -375,6 +391,9 @@ private fun LanguageSection(
                 color = if (isTranslation) colors.primary else colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
             if (isTranslation && isOffline) {
                 Text(

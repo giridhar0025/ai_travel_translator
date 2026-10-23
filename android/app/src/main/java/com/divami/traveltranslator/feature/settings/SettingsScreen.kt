@@ -368,6 +368,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_reduce_motion),
                 body = stringResource(R.string.settings_reduce_motion_body),
             )
+            Spacer(Modifier.height(DesignTokens.Spacing.S4))
             CoralButton(
                 text = stringResource(R.string.settings_got_it),
                 onClick = { showAccessibilitySheet = false },

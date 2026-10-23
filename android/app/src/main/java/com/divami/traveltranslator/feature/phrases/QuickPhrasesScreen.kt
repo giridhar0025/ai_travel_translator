@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -138,6 +139,7 @@ private fun PhrasesList(
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xl,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
             )
             Text(
                 text = stringResource(R.string.phrases_subtitle),
@@ -438,12 +440,13 @@ private fun PhraseCategoryScreen(
             .background(colors.background)
             .padding(top = contentPadding.calculateTopPadding()),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(colors.card)
-                .padding(horizontal = DesignTokens.Spacing.S4)
-                .padding(top = DesignTokens.Spacing.S4, bottom = DesignTokens.Spacing.S4),
+                .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
         ) {
             Box(
                 modifier = Modifier
@@ -466,7 +469,9 @@ private fun PhraseCategoryScreen(
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xl,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = DesignTokens.Spacing.S3, start = DesignTokens.Spacing.S2),
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() },
             )
         }
 

@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -41,6 +42,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.divami.traveltranslator.R
@@ -204,6 +206,7 @@ private fun UndoBar(onUndo: () -> Unit, modifier: Modifier = Modifier) {
             text = stringResource(R.string.history_deleted),
             color = colors.foreground,
             fontSize = DesignTokens.Typography.Size.Sm,
+            modifier = Modifier.weight(1f),
         )
         TextButton(onClick = onUndo) {
             Text(
@@ -317,6 +320,7 @@ private fun ConversationRow(
                     fontSize = DesignTokens.Typography.Size.Base,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
@@ -327,7 +331,7 @@ private fun ConversationRow(
                 )
             }
             Text(
-                text = stringResource(R.string.history_messages, conv.messageCount),
+                text = pluralStringResource(R.plurals.history_messages, conv.messageCount, conv.messageCount),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 modifier = Modifier.padding(top = DesignTokens.Spacing.S1),

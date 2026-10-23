@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
@@ -95,7 +96,7 @@ fun LanguageSelectorBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+                .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S3),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
         ) {
@@ -254,6 +255,8 @@ private fun LangPill(
             color = colors.foreground,
             fontSize = DesignTokens.Typography.Size.Sm,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
     }
 }

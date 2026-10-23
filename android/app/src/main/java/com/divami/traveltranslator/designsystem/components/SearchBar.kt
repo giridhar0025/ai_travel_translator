@@ -27,11 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 
@@ -54,11 +56,11 @@ fun SearchBar(
             .background(colors.background)
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
-                color = if (isFocused) colors.ring else colors.border,
+                color = if (isFocused) colors.ring else colors.borderStrong,
                 shape = shape,
             )
-            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3)
-            .defaultMinSize(minHeight = DesignTokens.TouchTarget.Min),
+            .defaultMinSize(minHeight = DesignTokens.TouchTarget.Min)
+            .padding(horizontal = DesignTokens.Spacing.S4),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
     ) {
@@ -97,7 +99,7 @@ fun SearchBar(
             IconButton(onClick = { onValueChange("") }) {
                 Icon(
                     imageVector = Icons.Filled.Cancel,
-                    contentDescription = "Clear search",
+                    contentDescription = stringResource(R.string.search_clear),
                     tint = colors.textSecondary,
                 )
             }

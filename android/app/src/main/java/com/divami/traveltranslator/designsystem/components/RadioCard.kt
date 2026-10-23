@@ -68,7 +68,7 @@ fun RadioCard(
                 .size(20.dp)
                 .clip(CircleShape)
                 .background(if (isSelected) colors.primary else androidx.compose.ui.graphics.Color.Transparent)
-                .border(width = 2.dp, color = if (isSelected) colors.primary else colors.border, shape = CircleShape),
+                .border(width = 2.dp, color = if (isSelected) colors.primary else colors.borderStrong, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (isSelected) {
