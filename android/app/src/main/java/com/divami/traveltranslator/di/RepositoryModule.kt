@@ -2,6 +2,8 @@ package com.divami.traveltranslator.di
 
 import com.divami.traveltranslator.data.auth.FirebaseAuthGateway
 import com.divami.traveltranslator.data.auth.FirebaseAuthGatewayImpl
+import com.divami.traveltranslator.data.local.MlKitOfflineTranslator
+import com.divami.traveltranslator.data.local.OfflineTranslator
 import com.divami.traveltranslator.data.repository.AuthRepository
 import com.divami.traveltranslator.data.repository.AuthRepositoryImpl
 import com.divami.traveltranslator.data.repository.ConversationRepository
@@ -45,6 +47,11 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTranslationRepository(impl: TranslationRepositoryImpl): TranslationRepository
+
+    /** On-device fallback used by [TranslationRepositoryImpl] when the backend fails. */
+    @Binds
+    @Singleton
+    abstract fun bindOfflineTranslator(impl: MlKitOfflineTranslator): OfflineTranslator
 
     @Binds
     @Singleton

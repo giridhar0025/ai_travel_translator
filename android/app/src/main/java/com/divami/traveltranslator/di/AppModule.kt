@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.divami.traveltranslator.core.network.AndroidNetworkStatus
+import com.divami.traveltranslator.core.network.NetworkStatus
 import androidx.datastore.preferences.preferencesDataStoreFile
 import dagger.Module
 import dagger.Provides
@@ -48,4 +50,9 @@ object AppModule {
     @Provides
     @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @Singleton
+    fun provideNetworkStatus(@ApplicationContext context: Context): NetworkStatus =
+        AndroidNetworkStatus(context)
 }

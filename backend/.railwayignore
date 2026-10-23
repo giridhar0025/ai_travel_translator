@@ -1,0 +1,19 @@
+# Keep `railway up` from uploading the local virtualenv and caches (618 MB → ~1 MB).
+# Railway falls back to .gitignore, which here does not cover .venv/.
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.env
+.env.*
+tests/
+agents/
+*.md
+docker-compose.yml
+.dockerignore
+.python-version
+.devcontainer/

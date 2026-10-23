@@ -2,6 +2,8 @@ package com.divami.traveltranslator.data.repository
 
 import com.divami.traveltranslator.core.network.ApiError
 import com.divami.traveltranslator.core.network.ApiResult
+import com.divami.traveltranslator.core.network.NetworkStatus
+import com.divami.traveltranslator.data.local.OfflineTranslator
 import com.divami.traveltranslator.data.remote.TravelTranslatorApi
 import com.divami.traveltranslator.data.remote.dto.ConversationDto
 import com.divami.traveltranslator.data.remote.dto.MessageDto
@@ -14,10 +16,12 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
+import java.io.IOException
 
 class RepositoryTest {
 
@@ -98,6 +102,68 @@ class RepositoryTest {
         assertEquals(MessageRole.User, result.data.role)
         assertEquals("नमस्ते", result.data.translatedText)
         assertTrue(result.data.createdAt.epochSecond > 0)
+    }
+
+    @Test
+    fun `translation falls back to on-device when the network fails`() = runTest {
+        val api = object : FakeApi() {
+            override suspend fun translate(body: TranslateRequestDto): TranslateResultDto =
+                throw IOException("no signal")
+        }
+        val offline = object : OfflineTranslator {
+            override suspend fun translate(source: String, target: String, text: String) = "नमस्ते"
+
+            override fun warmUp(source: String, target: String) = Unit
+        }
+        val repo = TranslationRepositoryImpl(api, json, offline)
+        val result = repo.translate("en", "hi", "hello", null)
+        result as ApiResult.Success
+        assertEquals("नमस्ते", result.data.translation)
+        assertEquals("mlkit-offline", result.data.model)
+    }
+
+    @Test
+    fun `translation skips the network entirely when offline`() = runTest {
+        val api = object : FakeApi() {
+            override suspend fun translate(body: TranslateRequestDto): TranslateResultDto =
+                throw AssertionError("network must not be called while offline")
+        }
+        val offline = object : OfflineTranslator {
+            override suspend fun translate(source: String, target: String, text: String) = "नमस्ते"
+
+            override fun warmUp(source: String, target: String) = Unit
+        }
+        val offlineNetwork = object : NetworkStatus {
+            override fun isOnline() = false
+        }
+        val repo = TranslationRepositoryImpl(api, json, offline, offlineNetwork)
+        val result = repo.translate("en", "hi", "hello", null)
+        result as ApiResult.Success
+        assertEquals("mlkit-offline", result.data.model)
+    }
+
+    @Test
+    fun `translation does not mask a client error with on-device output`() = runTest {
+        val api = object : FakeApi() {
+            override suspend fun translate(body: TranslateRequestDto): TranslateResultDto =
+                throw HttpException(
+                    Response.error<Any>(400, """{"detail":"same language"}""".toResponseBody("application/json".toMediaType())),
+                )
+        }
+        var offlineCalled = false
+        val offline = object : OfflineTranslator {
+            override suspend fun translate(source: String, target: String, text: String): String {
+                offlineCalled = true
+                return "should not be used"
+            }
+
+            override fun warmUp(source: String, target: String) = Unit
+        }
+        val repo = TranslationRepositoryImpl(api, json, offline)
+        val result = repo.translate("en", "en", "hello", null)
+        result as ApiResult.Failure
+        assertEquals(ApiError.Kind.Client, result.error.kind)
+        assertFalse("offline must not run for 4xx", offlineCalled)
     }
 }
 

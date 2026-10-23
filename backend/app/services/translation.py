@@ -16,13 +16,43 @@ unsupported-language requests raise before any HF call.
 import asyncio
 import time
 from collections import OrderedDict
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterator
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import Any, Protocol
 
 from app.config import get_settings
-from app.services.hf_client import HuggingFaceClient, get_hf_client
+from app.services.groq_client import get_groq_client
+from app.services.hf_client import get_hf_client
+
+
+class ChatCompletionClient(Protocol):
+    """The bit of a provider client translation actually needs.
+
+    Implemented by both :class:`HuggingFaceClient` and :class:`GroqClient`, so
+    the service is provider-agnostic and `llm_provider` becomes a config flip.
+    """
+
+    async def chat_completion(
+        self,
+        *,
+        provider: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = ...,
+        max_tokens: int = ...,
+    ) -> str: ...
+
+    def chat_completion_stream(
+        self,
+        *,
+        provider: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = ...,
+        max_tokens: int = ...,
+    ) -> AsyncIterator[str]: ...
+
 
 # Cache key: (source, target, text, context)
 CacheKey = tuple[str, str, str, str | None]
@@ -209,14 +239,14 @@ class _LRU:
 class TranslationService:
     def __init__(
         self,
-        hf: HuggingFaceClient,
+        llm: ChatCompletionClient,
         *,
         model: str,
         provider: str,
         temperature: float,
         max_tokens: int,
     ) -> None:
-        self.hf = hf
+        self.llm = llm
         self.model = model
         self.provider = provider
         self.temperature = temperature
@@ -247,7 +277,7 @@ class TranslationService:
 
         messages = build_messages(source, target, text, context)
         start = time.monotonic()
-        raw = await self.hf.chat_completion(
+        raw = await self.llm.chat_completion(
             provider=self.provider,
             model=self.model,
             messages=messages,
@@ -287,7 +317,7 @@ class TranslationService:
         messages = build_messages(source, target, text, context)
         start = time.monotonic()
         parts: list[str] = []
-        async for delta in self.hf.chat_completion_stream(
+        async for delta in self.llm.chat_completion_stream(
             provider=self.provider,
             model=self.model,
             messages=messages,
@@ -327,9 +357,14 @@ def get_translation_service() -> TranslationService:
     global _service
     if _service is None:
         settings = get_settings()
+        # `resolved_llm_provider` is "groq" only when a Groq key is configured
+        # (or `llm_provider=groq` is set explicitly); otherwise stay on HF.
+        llm: ChatCompletionClient = (
+            get_groq_client() if settings.resolved_llm_provider == "groq" else get_hf_client()
+        )
         _service = TranslationService(
-            get_hf_client(),
-            model=settings.hf_model_translate,
+            llm,
+            model=settings.translate_model,
             provider=settings.hf_translate_provider,
             temperature=settings.translate_temperature,
             max_tokens=settings.translate_max_tokens,

@@ -19,12 +19,13 @@ from typing import Any
 import httpx
 
 from app.config import get_settings
+from app.services.llm_errors import LLMInferenceError
 
 HF_BASE_URL = "https://router.huggingface.co/hf-inference"
 HF_ROUTER_ROOT = "https://router.huggingface.co"
 
 
-class HFInferenceError(Exception):
+class HFInferenceError(LLMInferenceError):
     """HF returned a non-retryable error response or the request failed terminally."""
 
 

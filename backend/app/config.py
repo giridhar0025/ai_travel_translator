@@ -62,12 +62,47 @@ class Settings(BaseSettings):
     # the mobile clients fall back to their on-device engines.
     replicate_tts_version: str = "resemble-ai/chatterbox-turbo"
 
+    # Groq — OpenAI-compatible chat completions used for translation.
+    #
+    # The HF Inference router bills per-account credits and returns 402 once the
+    # account is out. Groq serves the same Llama family on a free tier, so it is
+    # the preferred translation backend when a key is present. `llm_provider`
+    # accepts "hf" / "groq" / "auto"; "auto" picks Groq when a key is configured
+    # and falls back to the HF router otherwise.
+    llm_provider: str = "auto"
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model_translate: str = "openai/gpt-oss-120b"
+    groq_timeout_seconds: float = 60.0
+
     # CORS — comma-separated list
     cors_allowed_origins: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
+
+    @property
+    def resolved_llm_provider(self) -> str:
+        """Which chat-completions backend translation should use.
+
+        Explicit `llm_provider` wins. Under "auto", a configured Groq key
+        selects Groq (free tier, no HF credit dependency); otherwise the HF
+        router.
+        """
+        choice = self.llm_provider.strip().lower()
+        if choice in {"hf", "groq"}:
+            return choice
+        return "groq" if self.groq_api_key.strip() else "hf"
+
+    @property
+    def translate_model(self) -> str:
+        """Model id for the resolved translation provider."""
+        return (
+            self.groq_model_translate
+            if self.resolved_llm_provider == "groq"
+            else self.hf_model_translate
+        )
 
 
 @lru_cache

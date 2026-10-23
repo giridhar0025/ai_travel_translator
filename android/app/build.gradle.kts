@@ -35,8 +35,8 @@ android {
         applicationId = "com.divami.traveltranslator"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
 
@@ -118,6 +118,10 @@ dependencies {
 
     // Local persistence (auth token + preferences)
     implementation(libs.androidx.datastore.preferences)
+
+    // On-device translation fallback (used when the backend is unreachable).
+    // Models are downloaded per language pair on Wi-Fi; see data/local/OfflineTranslator.kt
+    implementation(libs.mlkit.translate)
 
     // Firebase auth + Google sign-in via Credential Manager
     implementation(platform(libs.firebase.bom))

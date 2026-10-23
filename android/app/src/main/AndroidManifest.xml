@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Lets the offline translator decide whether it may download ML Kit models
+         (Wi-Fi/Ethernet only, so warming up never spends mobile data). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".TravelTranslatorApp"

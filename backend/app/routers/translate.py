@@ -13,7 +13,7 @@ from app.schemas.translation import (
     TranslateRequest,
     TranslateResultSchema,
 )
-from app.services.hf_client import HFInferenceError
+from app.services.llm_errors import LLMInferenceError
 from app.services.recents import insert_recent
 from app.services.translation import (
     SameLanguageError,
@@ -63,6 +63,14 @@ async def translate(
         result = await service.translate(body.source, body.target, body.text, body.context)
     except (UnsupportedLanguageError, SameLanguageError) as e:
         raise _bad_request(str(e)) from e
+    except LLMInferenceError as e:
+        # Upstream provider failure (HF credits exhausted, Groq rate limit, ...).
+        # 502 tells the client this is the provider's problem, not the request's,
+        # so it can fall back to on-device translation.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"translation provider failed: {e}",
+        ) from e
 
     background_tasks.add_task(
         insert_recent,
@@ -117,7 +125,7 @@ async def translate_stream(
                 yield _format_event(event)
                 if isinstance(event, StreamDone):
                     final_result = event.result
-        except HFInferenceError as e:
+        except LLMInferenceError as e:
             yield _sse({"error": str(e)})
             return
 
@@ -147,6 +155,11 @@ async def translate_batch(
         results = await service.translate_batch(body.source, body.target, body.items)
     except (UnsupportedLanguageError, SameLanguageError) as e:
         raise _bad_request(str(e)) from e
+    except LLMInferenceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"translation provider failed: {e}",
+        ) from e
 
     return TranslateBatchResponse(
         results=[

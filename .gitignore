@@ -38,6 +38,8 @@ android/captures/
 .env
 .env.local
 .env.*.local
+.env.*.bak*
+*.env.bak*
 
 # Notes:
 # - shared/generated/ is checked in so things work without running codegen.
