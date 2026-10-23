@@ -14,6 +14,8 @@ data class ChatMessage(
     val pronunciation: String? = null,
     /** True while the translation is still streaming in token-by-token. */
     val isStreaming: Boolean = false,
+    /** True when ML Kit produced the result on-device because the backend was unavailable. */
+    val isOffline: Boolean = false,
 )
 
 enum class ContextMode(val label: String) {

@@ -3,6 +3,7 @@ package com.divami.traveltranslator.feature.phrases
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.divami.traveltranslator.core.network.ApiResult
+import com.divami.traveltranslator.data.local.SessionStore
 import com.divami.traveltranslator.data.repository.FavoriteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ data class PhrasesUiState(
 @HiltViewModel
 class PhrasesViewModel @Inject constructor(
     private val favoriteRepository: FavoriteRepository,
+    private val sessionStore: SessionStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PhrasesUiState())
@@ -35,6 +37,11 @@ class PhrasesViewModel @Inject constructor(
 
     init {
         loadRecents()
+        viewModelScope.launch {
+            sessionStore.phraseFavorites.collect { favorites ->
+                _state.update { it.copy(favorites = favorites) }
+            }
+        }
     }
 
     fun loadRecents() {
@@ -50,9 +57,10 @@ class PhrasesViewModel @Inject constructor(
     }
 
     fun toggleFavorite(phrase: String) {
-        _state.update {
-            val next = it.favorites.toMutableSet().apply { if (!add(phrase)) remove(phrase) }
-            it.copy(favorites = next)
+        val next = _state.value.favorites.toMutableSet().apply { if (!add(phrase)) remove(phrase) }
+        _state.update { it.copy(favorites = next) }
+        viewModelScope.launch {
+            sessionStore.setPhraseFavorite(phrase, phrase in next)
         }
     }
 

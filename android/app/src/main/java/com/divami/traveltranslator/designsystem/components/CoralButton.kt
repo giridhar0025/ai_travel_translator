@@ -2,10 +2,12 @@ package com.divami.traveltranslator.designsystem.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -25,10 +27,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.minimumTouchTarget
 
 enum class CoralButtonVariant { Primary, Secondary, Text }
 
@@ -47,6 +53,7 @@ fun CoralButton(
     val colors = AppTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val isFocused by interactionSource.collectIsFocusedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed && enabled && !isLoading) DesignTokens.Motion.PressScale.Primary else 1f,
         label = "coralButtonScale",
@@ -57,7 +64,7 @@ fun CoralButton(
     val border: BorderStroke?
     when {
         whiteOnCoral -> {
-            bg = Color.White
+            bg = colors.card
             fg = colors.primary
             border = null
         }
@@ -69,7 +76,7 @@ fun CoralButton(
         variant == CoralButtonVariant.Secondary -> {
             bg = colors.card
             fg = if (enabled) colors.foreground else colors.textSecondary
-            border = BorderStroke(1.dp, colors.border)
+            border = BorderStroke(1.dp, colors.borderStrong)
         }
         else -> { // Text
             bg = Color.Transparent
@@ -84,18 +91,21 @@ fun CoralButton(
         rowModifier = rowModifier.fillMaxWidth()
     }
     rowModifier = rowModifier
+        .minimumTouchTarget()
         .clip(shape)
         .background(bg)
-    if (border != null) {
-        rowModifier = rowModifier.border(border, shape)
+    val effectiveBorder = if (isFocused) BorderStroke(2.dp, colors.ring) else border
+    if (effectiveBorder != null) {
+        rowModifier = rowModifier.border(effectiveBorder, shape)
     }
     rowModifier = rowModifier
         .clickable(
             interactionSource = interactionSource,
-            indication = null,
+            indication = LocalIndication.current,
             enabled = enabled && !isLoading,
             onClick = onClick,
         )
+        .semantics { role = Role.Button }
         .padding(
             horizontal = if (variant == CoralButtonVariant.Text) DesignTokens.Spacing.S3 else DesignTokens.Spacing.S6,
             vertical = if (variant == CoralButtonVariant.Text) DesignTokens.Spacing.S3 else DesignTokens.Spacing.S4,

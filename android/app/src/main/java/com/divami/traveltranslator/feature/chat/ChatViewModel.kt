@@ -28,6 +28,8 @@ data class ChatUiState(
     val flippedIds: Set<String> = emptySet(),
     val isSending: Boolean = false,
     val error: String? = null,
+    /** Original text to restore when the user taps Retry. */
+    val failedText: String? = null,
 )
 
 /**
@@ -81,6 +83,13 @@ class ChatViewModel @Inject constructor(
     }
     fun dismissError() = _state.update { it.copy(error = null) }
 
+    /** Re-submit the last failed translation without making the user retype it. */
+    fun retry() {
+        val text = _state.value.failedText ?: return
+        _state.update { it.copy(input = text, failedText = null, error = null) }
+        onSend()
+    }
+
     /** Clears the current conversation and starts fresh, keeping the selected
      *  languages. The next message re-anchors which side is "me". */
     fun newConversation() {
@@ -92,6 +101,7 @@ class ChatViewModel @Inject constructor(
                 flippedIds = emptySet(),
                 input = "",
                 error = null,
+                failedText = null,
                 isSending = false,
             )
         }
@@ -100,6 +110,45 @@ class ChatViewModel @Inject constructor(
     fun toggleFlip(messageId: String) = _state.update {
         val next = it.flippedIds.toMutableSet().apply { if (!add(messageId)) remove(messageId) }
         it.copy(flippedIds = next)
+    }
+
+    /** Restore a stored conversation into the live chat. */
+    fun loadConversation(id: String) {
+        viewModelScope.launch {
+            when (val result = conversationRepository.detail(id)) {
+                is ApiResult.Success -> {
+                    val restored = result.data.messages.mapNotNull { message ->
+                        val source = AppLanguage.fromCode(message.sourceLang) ?: return@mapNotNull null
+                        val target = AppLanguage.fromCode(message.targetLang ?: message.sourceLang)
+                            ?: AppLanguage.English
+                        ChatMessage(
+                            id = message.id,
+                            sender = if (message.role == MessageRole.User) Sender.You else Sender.OtherPerson,
+                            originalText = message.sourceText,
+                            originalLanguage = source,
+                            translatedText = message.translatedText.orEmpty(),
+                            translatedLanguage = target,
+                            pronunciation = message.pronunciation,
+                            isStreaming = false,
+                        )
+                    }
+                    conversationId = id
+                    homeLanguageCode = restored.firstOrNull()?.originalLanguage?.code
+                    _state.update {
+                        it.copy(
+                            messages = restored,
+                            flippedIds = emptySet(),
+                            input = "",
+                            error = null,
+                            failedText = null,
+                            isSending = false,
+                        )
+                    }
+                }
+                is ApiResult.Failure ->
+                    _state.update { it.copy(error = result.error.message) }
+            }
+        }
     }
 
     /**
@@ -147,19 +196,27 @@ class ChatViewModel @Inject constructor(
             isStreaming = true,
         )
         _state.update {
-            it.copy(input = "", isSending = true, error = null, messages = it.messages + placeholder)
+            it.copy(
+                input = "",
+                isSending = true,
+                error = null,
+                failedText = null,
+                messages = it.messages + placeholder,
+            )
         }
 
         viewModelScope.launch {
             var accumulated = ""
             var finalTranslation: String? = null
             var finalPronunciation: String? = null
+            var fallbackRan = false
 
             translationRepository.translateStreaming(src.code, tgt.code, text, contextHint)
                 .catch { cause ->
                     if (cause is CancellationException) throw cause
                     // Streaming failed — fall back to the plain non-streaming call so
                     // a proxy/SSE hiccup never loses the translation.
+                    fallbackRan = true
                     fallbackTranslate(messageId, src, tgt, text, contextHint)
                 }
                 .collect { chunk ->
@@ -176,11 +233,18 @@ class ChatViewModel @Inject constructor(
                                     translatedText = chunk.translation.translation,
                                     pronunciation = chunk.translation.pronunciation,
                                     isStreaming = false,
+                                    isOffline = chunk.translation.model.startsWith("mlkit"),
                                 )
                             }
                         }
                     }
                 }
+
+            // A proxy can end an SSE response without a terminal `done` event.
+            // Never leave the bubble stuck on typing dots.
+            if (finalTranslation == null && !fallbackRan) {
+                fallbackTranslate(messageId, src, tgt, text, contextHint)
+            }
 
             _state.update { it.copy(isSending = false) }
             finalTranslation?.let { persist(text, src, tgt, it, finalPronunciation) }
@@ -202,6 +266,7 @@ class ChatViewModel @Inject constructor(
                         translatedText = result.data.translation,
                         pronunciation = result.data.pronunciation,
                         isStreaming = false,
+                        isOffline = result.data.model.startsWith("mlkit"),
                     )
                 }
                 _state.update { it.copy(isSending = false) }
@@ -216,6 +281,7 @@ class ChatViewModel @Inject constructor(
                         input = if (state.input.isBlank()) text else state.input,
                         isSending = false,
                         error = result.error.message,
+                        failedText = text,
                     )
                 }
             }

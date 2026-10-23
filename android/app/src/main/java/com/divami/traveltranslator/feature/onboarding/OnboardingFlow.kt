@@ -3,6 +3,7 @@ package com.divami.traveltranslator.feature.onboarding
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,11 +48,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 import com.divami.traveltranslator.designsystem.components.AppLanguage
@@ -61,25 +64,25 @@ import com.divami.traveltranslator.designsystem.components.RadioCard
 
 private data class OnboardingSlide(
     val icon: ImageVector,
-    val title: String,
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val bodyRes: Int,
 )
 
 private val Slides = listOf(
     OnboardingSlide(
         Icons.Outlined.ChatBubbleOutline,
-        "Speak Instantly",
-        "Communicate with locals in real-time using AI-powered translation",
+        R.string.onboarding_slide1_title,
+        R.string.onboarding_slide1_body,
     ),
     OnboardingSlide(
         Icons.AutoMirrored.Outlined.VolumeUp,
-        "Translate Naturally",
-        "Get accurate, context-aware translations that sound natural",
+        R.string.onboarding_slide2_title,
+        R.string.onboarding_slide2_body,
     ),
     OnboardingSlide(
         Icons.Outlined.Public,
-        "Play Audio to Locals",
-        "Let the app speak for you with native pronunciation",
+        R.string.onboarding_slide3_title,
+        R.string.onboarding_slide3_body,
     ),
 )
 
@@ -159,7 +162,7 @@ private fun SlideStep(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "Previous slide",
+                        contentDescription = stringResource(R.string.common_back),
                         tint = colors.foreground,
                         modifier = Modifier.size(24.dp),
                     )
@@ -170,7 +173,7 @@ private fun SlideStep(
             }
 
             CoralButton(
-                text = "Skip",
+                text = stringResource(R.string.common_skip),
                 onClick = onSkip,
                 variant = CoralButtonVariant.Text,
             )
@@ -200,7 +203,7 @@ private fun SlideStep(
             }
             Spacer(Modifier.height(DesignTokens.Spacing.S8))
             Text(
-                text = slide.title,
+                text = stringResource(slide.titleRes),
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xxl,
                 fontWeight = FontWeight.SemiBold,
@@ -208,7 +211,7 @@ private fun SlideStep(
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S4))
             Text(
-                text = slide.description,
+                text = stringResource(slide.bodyRes),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Base,
                 textAlign = TextAlign.Center,
@@ -245,7 +248,7 @@ private fun SlideStep(
                 }
             }
             CoralButton(
-                text = "Next",
+                text = stringResource(R.string.common_next),
                 onClick = onNext,
                 trailingIcon = Icons.Outlined.ChevronRight,
             )
@@ -278,13 +281,13 @@ private fun LanguageStep(
                 .padding(top = DesignTokens.Spacing.S6 + DesignTokens.Spacing.S8, bottom = DesignTokens.Spacing.S8),
         ) {
             Text(
-                text = "Choose Your Language",
+                text = stringResource(R.string.onboarding_choose_language),
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xxl,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Select your primary language for translation",
+                text = stringResource(R.string.onboarding_choose_language_body),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Base,
                 modifier = Modifier.padding(top = DesignTokens.Spacing.S2),
@@ -350,7 +353,7 @@ private fun LanguageStep(
                 .fillMaxWidth()
                 .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S8),
         ) {
-            CoralButton(text = "Continue", onClick = onNext)
+            CoralButton(text = stringResource(R.string.common_continue), onClick = onNext)
         }
     }
 }
@@ -404,7 +407,7 @@ private fun MicrophoneStep(
             }
             Spacer(Modifier.height(DesignTokens.Spacing.S8))
             Text(
-                text = "Microphone access blocked",
+                text = stringResource(R.string.onboarding_mic_blocked_title),
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xxl,
                 fontWeight = FontWeight.SemiBold,
@@ -412,14 +415,14 @@ private fun MicrophoneStep(
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S4))
             Text(
-                text = "Enable microphone in Settings to use voice translation",
+                text = stringResource(R.string.onboarding_mic_blocked_body),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Base,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S8))
             CoralButton(
-                text = "Open Settings",
+                text = stringResource(R.string.common_open_settings),
                 onClick = {
                     val intent = Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -430,7 +433,7 @@ private fun MicrophoneStep(
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S3))
             CoralButton(
-                text = "Maybe Later",
+                text = stringResource(R.string.onboarding_maybe_later),
                 onClick = onSkip,
                 variant = CoralButtonVariant.Text,
             )
@@ -452,26 +455,26 @@ private fun MicrophoneStep(
             }
             Spacer(Modifier.height(DesignTokens.Spacing.S8))
             Text(
-                text = "Enable Microphone",
+                text = stringResource(R.string.onboarding_enable_mic),
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xxl,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S4))
             Text(
-                text = "Allow microphone access to use voice translation features",
+                text = stringResource(R.string.onboarding_mic_body),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Base,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S8))
             CoralButton(
-                text = "Enable Microphone",
+                text = stringResource(R.string.onboarding_enable_mic),
                 onClick = { permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) },
             )
             Spacer(Modifier.height(DesignTokens.Spacing.S3))
             CoralButton(
-                text = "Maybe Later",
+                text = stringResource(R.string.onboarding_maybe_later),
                 onClick = onSkip,
                 variant = CoralButtonVariant.Text,
             )

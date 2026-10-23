@@ -6,6 +6,8 @@ import com.divami.traveltranslator.core.network.ApiResult
 import com.divami.traveltranslator.data.repository.ConversationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +36,8 @@ data class HistoryUiState(
     val query: String = "",
     val loading: Boolean = true,
     val error: String? = null,
+    /** True while the soft-delete window is open and Undo can restore the row. */
+    val undoVisible: Boolean = false,
 )
 
 /**
@@ -52,6 +56,9 @@ class HistoryViewModel @Inject constructor(
 
     private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
     private val dateFormatter = DateTimeFormatter.ofPattern("MMM d").withZone(ZoneId.systemDefault())
+    private var deleteJob: Job? = null
+    private var deletedSnapshot: List<HistoryItem>? = null
+    private var pendingDeleteId: String? = null
 
     init {
         // Reload whenever the (debounced) query changes, including the initial "".
@@ -69,13 +76,38 @@ class HistoryViewModel @Inject constructor(
     fun refresh() = load(_state.value.query)
 
     fun delete(id: String) {
-        val snapshot = _state.value.items
-        _state.update { it.copy(items = it.items.filterNot { c -> c.id == id }) }
-        viewModelScope.launch {
-            if (conversationRepository.delete(id) is ApiResult.Failure) {
-                _state.update { it.copy(items = snapshot) } // revert on failure
-            }
+        // Committing a second delete while an Undo window is open finalises the
+        // previous one instead of silently losing track of it.
+        pendingDeleteId?.let { previous ->
+            viewModelScope.launch { conversationRepository.delete(previous) }
         }
+        val snapshot = _state.value.items
+        deletedSnapshot = snapshot
+        pendingDeleteId = id
+        _state.update { it.copy(items = it.items.filterNot { c -> c.id == id }, undoVisible = true) }
+        deleteJob?.cancel()
+        deleteJob = viewModelScope.launch {
+            // Give the user a short window to undo before touching the backend.
+            delay(5_000L)
+            if (conversationRepository.delete(id) is ApiResult.Failure) {
+                _state.update { it.copy(items = snapshot, undoVisible = false) } // revert on failure
+            } else {
+                _state.update { it.copy(undoVisible = false) }
+            }
+            deletedSnapshot = null
+            pendingDeleteId = null
+        }
+    }
+
+    /** Cancel the pending delete and restore the row immediately. */
+    fun undoDelete() {
+        deleteJob?.cancel()
+        deleteJob = null
+        deletedSnapshot?.let { snapshot ->
+            _state.update { it.copy(items = snapshot, undoVisible = false) }
+        }
+        deletedSnapshot = null
+        pendingDeleteId = null
     }
 
     private fun load(query: String) {

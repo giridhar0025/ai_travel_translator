@@ -17,6 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
@@ -39,10 +43,14 @@ fun RadioCard(
             .background(if (isSelected) colors.primaryLight else colors.card)
             .border(
                 width = 2.dp,
-                color = if (isSelected) colors.primary else colors.border,
+                color = if (isSelected) colors.primary else colors.borderStrong,
                 shape = shape,
             )
             .clickable(onClick = onClick)
+            .semantics {
+                role = Role.RadioButton
+                this.selected = isSelected
+            }
             .defaultMinSize(minHeight = DesignTokens.TouchTarget.Min)
             .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S4),
         verticalAlignment = Alignment.CenterVertically,

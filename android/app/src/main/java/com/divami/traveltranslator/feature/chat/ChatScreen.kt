@@ -2,9 +2,9 @@ package com.divami.traveltranslator.feature.chat
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -16,6 +16,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,50 +43,76 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import com.divami.traveltranslator.designsystem.components.ToastHost
-import com.divami.traveltranslator.designsystem.components.ToastKind
-import com.divami.traveltranslator.designsystem.components.ToastModel
-import com.divami.traveltranslator.designsystem.components.rememberToastState
-import com.divami.traveltranslator.feature.audio.AudioPlayerViewModel
-import com.divami.traveltranslator.feature.voice.VoicePhase
-import com.divami.traveltranslator.feature.voice.VoiceViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.components.AppBottomSheet
+import com.divami.traveltranslator.designsystem.components.CoralButton
+import com.divami.traveltranslator.designsystem.components.CoralButtonVariant
+import com.divami.traveltranslator.designsystem.components.ToastHost
+import com.divami.traveltranslator.designsystem.components.ToastKind
+import com.divami.traveltranslator.designsystem.components.ToastModel
+import com.divami.traveltranslator.designsystem.components.rememberToastState
+import com.divami.traveltranslator.designsystem.minimumTouchTarget
+import com.divami.traveltranslator.designsystem.rememberReducedMotion
+import com.divami.traveltranslator.feature.audio.AudioPlayerViewModel
+import com.divami.traveltranslator.feature.voice.VoicePhase
+import com.divami.traveltranslator.feature.voice.VoiceViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val MaxRecordingMs = 60_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,64 +123,96 @@ fun ChatScreen(
     val colors = AppTheme.colors
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
+    val reducedMotion = rememberReducedMotion()
+    val view = LocalView.current
 
-    // Inline audio playback — one shared player for the whole chat so only one
-    // message speaks at a time and each bubble reflects play/stop/loading.
+    // One shared player for the whole chat so only one message speaks at a time.
     val audioViewModel: AudioPlayerViewModel = hiltViewModel()
     val audioState by audioViewModel.state.collectAsState()
     var activePlayId by remember { mutableStateOf<String?>(null) }
 
-    // Clear the "which bubble is playing" marker once audio stops/finishes.
     LaunchedEffect(audioState.playing, audioState.preparing) {
         if (!audioState.playing && !audioState.preparing) activePlayId = null
     }
 
-    // #6: clipboard + toast
     val clipboardManager = LocalClipboardManager.current
     val toastState = rememberToastState()
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
-
-    // #20: keyboard controller — dismiss on send
     val keyboard = LocalSoftwareKeyboardController.current
-
-    // #21: focus requester for the input field — Edit chip focuses it
     val inputFocus = remember { FocusRequester() }
+    val context = LocalContext.current
 
-    // Keep the newest message in view — including while its translation streams
-    // in token-by-token (keyed on the last message's growing text).
-    val lastMessageText = state.messages.lastOrNull()?.translatedText
-    LaunchedEffect(state.messages.size, lastMessageText) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.size - 1)
+    var showNewChatConfirm by remember { mutableStateOf(false) }
+    var showMicPrimer by remember { mutableStateOf(false) }
+    var showToLocal by remember { mutableStateOf<ChatMessage?>(null) }
+
+    // Announce a finished translation once, rather than every streamed token.
+    var streamingMessageId by remember { mutableStateOf<String?>(null) }
+    val translationReady = stringResource(R.string.chat_translation_ready)
+    val lastMessage = state.messages.lastOrNull()
+    LaunchedEffect(lastMessage?.id, lastMessage?.isStreaming) {
+        val message = lastMessage ?: return@LaunchedEffect
+        if (message.isStreaming) {
+            streamingMessageId = message.id
+        } else if (streamingMessageId == message.id && message.translatedText.isNotBlank()) {
+            view.announceForAccessibility(
+                "$translationReady. ${message.translatedLanguage.displayName}: ${message.translatedText}",
+            )
+            streamingMessageId = null
         }
     }
 
-    // Inline voice recording (tap-to-record) — replaces the full-screen recorder.
-    val context = LocalContext.current
+    // Keep the newest message in view, but never fight a user who scrolled up.
+    val lastMessageText = lastMessage?.translatedText
+    val atBottom by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= state.messages.lastIndex - 1
+        }
+    }
+    LaunchedEffect(state.messages.size, lastMessageText, atBottom) {
+        if (state.messages.isNotEmpty() && atBottom) {
+            if (reducedMotion) listState.scrollToItem(state.messages.size - 1)
+            else listState.animateScrollToItem(state.messages.size - 1)
+        }
+    }
+
+    // Inline voice recording.
     val voiceViewModel: VoiceViewModel = hiltViewModel()
     val voiceState by voiceViewModel.state.collectAsState()
     var voiceActive by remember { mutableStateOf(false) }
-    var elapsedMs by remember { mutableStateOf(0L) }
+    var elapsedMs by remember { mutableLongStateOf(0L) }
+    var voiceError by remember { mutableStateOf<String?>(null) }
     val amplitudes = remember { mutableStateListOf<Float>() }
 
     fun beginVoice() {
+        voiceError = null
         amplitudes.clear()
         elapsedMs = 0L
         voiceActive = true
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         voiceViewModel.startRecording(state.sourceLanguage.code)
     }
 
     val micLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { granted -> if (granted) beginVoice() }
+    ) { granted ->
+        if (granted) {
+            showMicPrimer = false
+            beginVoice()
+        } else {
+            showMicPrimer = false
+            voiceError = context.getString(R.string.voice_mic_error)
+        }
+    }
 
     fun onMicTap() {
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.RECORD_AUDIO,
         ) == PackageManager.PERMISSION_GRANTED
-        if (granted) beginVoice() else micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        if (granted) beginVoice() else showMicPrimer = true
     }
 
     // Poll mic amplitude + tick the timer while recording (drives the waveform).
@@ -162,17 +223,26 @@ fun ChatScreen(
                 amplitudes.add(level)
                 if (amplitudes.size > 48) amplitudes.removeAt(0)
                 elapsedMs += 90
+                if (elapsedMs >= MaxRecordingMs) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    voiceViewModel.stopAndTranscribe()
+                    break
+                }
                 delay(90)
             }
         }
     }
 
-    // Deliver the transcript into the input once transcription finishes.
+    // Deliver the transcript, or show an actionable error.
     LaunchedEffect(voiceState.phase) {
         if (voiceState.phase == VoicePhase.Review) {
-            if (voiceState.transcript.isNotBlank()) viewModel.onInputChange(voiceState.transcript)
-            voiceState.error?.let { msg ->
-                scope.launch { toastState.show(ToastModel(msg, ToastKind.Error)) }
+            when {
+                voiceState.error != null -> voiceError = voiceState.error
+                voiceState.transcript.isNotBlank() -> {
+                    viewModel.onInputChange(voiceState.transcript)
+                    inputFocus.requestFocus()
+                    keyboard?.show()
+                }
             }
             voiceActive = false
             amplitudes.clear()
@@ -180,7 +250,13 @@ fun ChatScreen(
         }
     }
 
-    // Outer Box so ToastHost can overlay the full screen
+    LaunchedEffect(audioState.error) {
+        audioState.error?.let { message ->
+            toastState.show(ToastModel(message, ToastKind.Error), durationMillis = 5_000L)
+            audioViewModel.clearError()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -189,7 +265,10 @@ fun ChatScreen(
                 .padding(top = contentPadding.calculateTopPadding()),
         ) {
             ChatTopBar(
-                onNewChat = viewModel::newConversation,
+                onNewChat = {
+                    if (state.messages.isEmpty()) viewModel.newConversation()
+                    else showNewChatConfirm = true
+                },
                 canClear = state.messages.isNotEmpty(),
             )
 
@@ -201,151 +280,129 @@ fun ChatScreen(
                 onSwap = viewModel::swapLanguages,
             )
 
-            // #16: empty state vs message list
             if (state.messages.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(96.dp)
-                                .clip(CircleShape)
-                                .background(colors.primaryLight),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ChatBubbleOutline,
-                                contentDescription = null,
-                                tint = colors.primary,
-                                modifier = Modifier.size(44.dp),
-                            )
-                        }
-                        Text(
-                            text = "Translate anything",
-                            color = colors.foreground,
-                            fontSize = DesignTokens.Typography.Size.Lg,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "Type or tap the mic to begin",
-                            color = colors.textSecondary,
-                            fontSize = DesignTokens.Typography.Size.Base,
-                        )
-                    }
-                }
+                EmptyChatState(
+                    modifier = Modifier.weight(1f),
+                    onSuggestion = { phrase ->
+                        viewModel.onInputChange(phrase)
+                        inputFocus.requestFocus()
+                        keyboard?.show()
+                    },
+                )
             } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
-                    contentPadding = PaddingValues(vertical = DesignTokens.Spacing.S6),
-                ) {
-                    val lastId = state.messages.lastOrNull()?.id
-                    items(state.messages, key = { it.id }) { message ->
-                        val playback = when {
-                            activePlayId != message.id -> PlaybackState.Idle
-                            audioState.preparing -> PlaybackState.Preparing
-                            audioState.playing -> PlaybackState.Playing
-                            else -> PlaybackState.Idle
-                        }
-                        MessageBubble(
-                            message = message,
-                            flipped = state.flippedIds.contains(message.id),
-                            playback = playback,
-                            isOwnLatest = message.sender == Sender.You &&
-                                message.id == lastId && !message.isStreaming,
-                            onFlip = { viewModel.toggleFlip(message.id) },
-                            // Inline play: tap toggles speak/stop on this bubble.
-                            onPlayToggle = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                if (activePlayId == message.id &&
-                                    (audioState.playing || audioState.preparing)
-                                ) {
-                                    audioViewModel.stop()
-                                    activePlayId = null
-                                } else {
+                Box(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
+                        contentPadding = PaddingValues(vertical = DesignTokens.Spacing.S6),
+                    ) {
+                        val lastId = state.messages.lastOrNull()?.id
+                        items(state.messages, key = { it.id }) { message ->
+                            val playback = when {
+                                activePlayId != message.id -> PlaybackState.Idle
+                                audioState.preparing -> PlaybackState.Preparing
+                                audioState.playing -> PlaybackState.Playing
+                                else -> PlaybackState.Idle
+                            }
+                            MessageBubble(
+                                message = message,
+                                flipped = state.flippedIds.contains(message.id),
+                                playback = playback,
+                                isOwnLatest = message.sender == Sender.You &&
+                                    message.id == lastId && !message.isStreaming,
+                                onFlip = { viewModel.toggleFlip(message.id) },
+                                onPlayToggle = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    if (activePlayId == message.id &&
+                                        (audioState.playing || audioState.preparing)
+                                    ) {
+                                        audioViewModel.stop()
+                                        activePlayId = null
+                                    } else {
+                                        activePlayId = message.id
+                                        audioViewModel.play(
+                                            message.translatedText,
+                                            message.translatedLanguage.code,
+                                            slow = false,
+                                        )
+                                    }
+                                },
+                                onSlow = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     activePlayId = message.id
                                     audioViewModel.play(
                                         message.translatedText,
                                         message.translatedLanguage.code,
-                                        slow = false,
+                                        slow = true,
                                     )
-                                }
-                            },
-                            // Long-press the play chip → speak slowly.
-                            onSlow = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                activePlayId = message.id
-                                audioViewModel.play(
-                                    message.translatedText,
-                                    message.translatedLanguage.code,
-                                    slow = true,
-                                )
-                            },
-                            // #21: Edit sets text, focuses input, shows keyboard
-                            onEdit = {
-                                viewModel.onInputChange(message.originalText)
-                                inputFocus.requestFocus()
-                                keyboard?.show()
-                            },
-                            // #6: Copy writes translatedText to clipboard and shows a toast
-                            onCopy = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                clipboardManager.setText(AnnotatedString(message.translatedText))
+                                },
+                                onEdit = {
+                                    viewModel.onInputChange(message.originalText)
+                                    inputFocus.requestFocus()
+                                    keyboard?.show()
+                                },
+                                onCopy = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    clipboardManager.setText(AnnotatedString(message.translatedText))
+                                    scope.launch {
+                                        toastState.show(
+                                            ToastModel(
+                                                context.getString(R.string.chat_copied),
+                                                ToastKind.Success,
+                                            ),
+                                        )
+                                    }
+                                },
+                                onShow = { showToLocal = message },
+                            )
+                        }
+                    }
+
+                    if (!atBottom) {
+                        JumpToLatest(
+                            onClick = {
                                 scope.launch {
-                                    toastState.show(ToastModel("Copied to clipboard", ToastKind.Success))
+                                    if (reducedMotion) listState.scrollToItem(state.messages.lastIndex)
+                                    else listState.animateScrollToItem(state.messages.lastIndex)
                                 }
                             },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = DesignTokens.Spacing.S4),
                         )
                     }
                 }
             }
 
-            // #17: inline error chip above the input area
+            if (voiceError != null) {
+                VoiceErrorBar(
+                    message = voiceError.orEmpty(),
+                    onRetry = {
+                        voiceError = null
+                        beginVoice()
+                    },
+                    onDismiss = { voiceError = null },
+                    onTypeInstead = {
+                        voiceError = null
+                        inputFocus.requestFocus()
+                        keyboard?.show()
+                    },
+                )
+            }
+
             AnimatedVisibility(
                 visible = state.error != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
                 state.error?.let { errorMsg ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colors.destructive.copy(alpha = 0.12f))
-                            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = errorMsg,
-                            color = colors.destructive,
-                            fontSize = DesignTokens.Typography.Size.Sm,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .clickable { viewModel.dismissError() },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = "Dismiss error",
-                                tint = colors.destructive,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
+                    ErrorBar(
+                        message = errorMsg,
+                        onRetry = viewModel::retry,
+                        canRetry = state.failedText != null,
+                        onDismiss = viewModel::dismissError,
+                    )
                 }
             }
 
@@ -360,16 +417,17 @@ fun ChatScreen(
                 elapsedMs = elapsedMs,
                 amplitudes = amplitudes,
                 onCancelVoice = {
-                    voiceViewModel.cancel()
+                    if (voiceState.phase == VoicePhase.Transcribing) voiceViewModel.cancelTranscription()
+                    else voiceViewModel.cancel()
                     voiceActive = false
                     amplitudes.clear()
+                    voiceError = null
                     voiceViewModel.clear()
                 },
                 onSendVoice = {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     voiceViewModel.stopAndTranscribe()
                 },
-                // #20: hide keyboard before delegating to ViewModel
                 onSend = {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     keyboard?.hide()
@@ -380,9 +438,166 @@ fun ChatScreen(
             )
         }
 
-        // #6: ToastHost overlays full screen
         ToastHost(state = toastState)
     }
+
+    if (showNewChatConfirm) {
+        AlertDialog(
+            onDismissRequest = { showNewChatConfirm = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.chat_new_confirm_title),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
+            text = { Text(stringResource(R.string.chat_new_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNewChatConfirm = false
+                        viewModel.newConversation()
+                    },
+                ) {
+                    Text(stringResource(R.string.chat_new_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewChatConfirm = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+            containerColor = colors.card,
+        )
+    }
+
+    if (showMicPrimer) {
+        AppBottomSheet(onDismissRequest = { showMicPrimer = false }) {
+            Text(
+                text = stringResource(R.string.voice_permission_title),
+                color = colors.foreground,
+                fontSize = DesignTokens.Typography.Size.Lg,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.voice_permission_body),
+                color = colors.textSecondary,
+                fontSize = DesignTokens.Typography.Size.Base,
+                modifier = Modifier.padding(top = DesignTokens.Spacing.S3),
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = DesignTokens.Spacing.S6),
+                verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
+            ) {
+                CoralButton(
+                    text = stringResource(R.string.voice_permission_allow),
+                    onClick = { micLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                )
+                CoralButton(
+                    text = stringResource(R.string.voice_type_instead),
+                    variant = CoralButtonVariant.Secondary,
+                    onClick = {
+                        showMicPrimer = false
+                        inputFocus.requestFocus()
+                        keyboard?.show()
+                    },
+                )
+            }
+        }
+    }
+
+    showToLocal?.let { message ->
+        PointToSpeakDialog(
+            message = message,
+            isPlaying = activePlayId == message.id && (audioState.playing || audioState.preparing),
+            onPlay = {
+                activePlayId = message.id
+                audioViewModel.play(message.translatedText, message.translatedLanguage.code, slow = false)
+            },
+            onSlow = {
+                activePlayId = message.id
+                audioViewModel.play(message.translatedText, message.translatedLanguage.code, slow = true)
+            },
+            onStop = {
+                audioViewModel.stop()
+                activePlayId = null
+            },
+            onDismiss = { showToLocal = null },
+        )
+    }
+}
+
+@Composable
+private fun EmptyChatState(
+    modifier: Modifier = Modifier,
+    onSuggestion: (String) -> Unit,
+) {
+    val colors = AppTheme.colors
+    val suggestions = listOf(
+        "Where is the train station?",
+        "I’m allergic to peanuts",
+        "How much is this?",
+    )
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
+            modifier = Modifier.padding(horizontal = DesignTokens.Spacing.S6),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(colors.primaryLight),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ChatBubbleOutline,
+                    contentDescription = null,
+                    tint = colors.primary,
+                    modifier = Modifier.size(44.dp),
+                )
+            }
+            Text(
+                text = stringResource(R.string.chat_empty_title),
+                color = colors.foreground,
+                fontSize = DesignTokens.Typography.Size.Lg,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.chat_empty_subtitle),
+                color = colors.textSecondary,
+                fontSize = DesignTokens.Typography.Size.Base,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2)) {
+                suggestions.take(2).forEach { phrase ->
+                    SuggestionChip(phrase = phrase, onClick = { onSuggestion(phrase) })
+                }
+            }
+            SuggestionChip(
+                phrase = suggestions.last(),
+                onClick = { onSuggestion(suggestions.last()) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuggestionChip(phrase: String, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    Text(
+        text = phrase,
+        color = colors.primary,
+        fontSize = DesignTokens.Typography.Size.Sm,
+        modifier = Modifier
+            .minimumTouchTarget()
+            .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
+            .background(colors.primaryLight)
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
+            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+    )
 }
 
 @Composable
@@ -399,34 +614,147 @@ private fun ChatTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Conversation",
+            text = stringResource(R.string.chat_title),
             color = colors.foreground,
             fontSize = DesignTokens.Typography.Size.Lg,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
         )
         Row(
             modifier = Modifier
+                .minimumTouchTarget()
+                .heightIn(min = DesignTokens.TouchTarget.Min)
                 .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
                 .background(if (canClear) colors.primaryLight else colors.muted)
                 .clickable(enabled = canClear, onClick = onNewChat)
+                .semantics { role = Role.Button }
                 .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
         ) {
             Icon(
                 imageVector = Icons.Outlined.Add,
-                contentDescription = "New chat",
+                contentDescription = null,
                 tint = if (canClear) colors.primary else colors.textSecondary,
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "New",
+                text = stringResource(R.string.chat_new),
                 color = if (canClear) colors.primary else colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Sm,
                 fontWeight = FontWeight.Medium,
             )
         }
+    }
+}
+
+@Composable
+private fun ErrorBar(
+    message: String,
+    onRetry: () -> Unit,
+    canRetry: Boolean,
+    onDismiss: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.destructive.copy(alpha = 0.12f))
+            .semantics { liveRegion = LiveRegionMode.Assertive }
+            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+    ) {
+        Text(
+            text = message,
+            color = colors.destructive,
+            fontSize = DesignTokens.Typography.Size.Sm,
+            modifier = Modifier.weight(1f),
+        )
+        if (canRetry) {
+            TextButton(onClick = onRetry) {
+                Text(stringResource(R.string.chat_retry), color = colors.destructive)
+            }
+        }
+        Box(
+            modifier = Modifier
+                .minimumTouchTarget()
+                .size(DesignTokens.TouchTarget.Min)
+                .clip(CircleShape)
+                .clickable(onClick = onDismiss)
+                .semantics { role = Role.Button },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = stringResource(R.string.chat_dismiss_error),
+                tint = colors.destructive,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun VoiceErrorBar(
+    message: String,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+    onTypeInstead: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.destructive.copy(alpha = 0.12f))
+            .semantics { liveRegion = LiveRegionMode.Assertive }
+            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
+    ) {
+        Text(
+            text = stringResource(R.string.voice_error_title),
+            color = colors.destructive,
+            fontSize = DesignTokens.Typography.Size.Sm,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = message,
+            color = colors.destructive,
+            fontSize = DesignTokens.Typography.Size.Sm,
+        )
+        Row(
+            modifier = Modifier.padding(top = DesignTokens.Spacing.S2),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+        ) {
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.voice_retry)) }
+            TextButton(onClick = onTypeInstead) { Text(stringResource(R.string.voice_type_instead)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) }
+        }
+    }
+}
+
+@Composable
+private fun JumpToLatest(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = modifier
+            .minimumTouchTarget()
+            .clip(RoundedCornerShape(DesignTokens.Radius.Modal))
+            .background(colors.card)
+            .border(1.dp, colors.borderStrong, RoundedCornerShape(DesignTokens.Radius.Modal))
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
+            .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+    ) {
+        Text(
+            text = stringResource(R.string.chat_jump_latest),
+            color = colors.primary,
+            fontSize = DesignTokens.Typography.Size.Sm,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 
@@ -445,14 +773,12 @@ private fun ChatInputArea(
     onSendVoice: () -> Unit,
     onSend: () -> Unit,
     bottomPadding: androidx.compose.ui.unit.Dp,
-    inputFocus: FocusRequester, // #21: passed down so InputBox can attach focusRequester
+    inputFocus: FocusRequester,
 ) {
     val colors = AppTheme.colors
     val canSend = input.isNotBlank()
     val voiceMode = isRecording || isTranscribing
 
-    // Classic adjustResize (no edge-to-edge): the window physically shrinks above
-    // the keyboard, so this row rises with it. bottomPadding clears the nav bar.
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -485,32 +811,31 @@ private fun ChatInputArea(
                 .fillMaxWidth()
                 .padding(horizontal = DesignTokens.Spacing.S4)
                 .padding(bottom = DesignTokens.Spacing.S4),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
         ) {
             InputBox(
                 value = input,
                 onValueChange = onInputChange,
                 onSend = onSend,
-                focusRequester = inputFocus, // #21
+                focusRequester = inputFocus,
                 modifier = Modifier.weight(1f),
             )
 
-            // One trailing button that morphs: mic when the field is empty (starts
-            // inline voice recording), send arrow once you've typed something.
             CircleIconButton(
                 icon = if (canSend) Icons.AutoMirrored.Outlined.Send else Icons.Outlined.Mic,
                 background = if (canSend) colors.primary else colors.primaryLight,
                 tint = if (canSend) colors.onPrimary else colors.primary,
                 onClick = if (canSend) onSend else onMicTap,
-                contentDescription = if (canSend) "Send message" else "Record voice",
+                contentDescription = stringResource(
+                    if (canSend) R.string.chat_send_message else R.string.chat_record_voice,
+                ),
             )
         }
     }
 }
 
-/** Inline recorder that replaces the input row while capturing voice — a red
- *  timer + live waveform with tap Cancel / tap Send (accessible, no hold). */
+/** Inline recorder — a timer + live waveform with tap Cancel / tap Send (no hold). */
 @Composable
 private fun RecordingBar(
     isTranscribing: Boolean,
@@ -528,24 +853,24 @@ private fun RecordingBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
     ) {
-        // Cancel / discard
         CircleIconButton(
-            icon = Icons.Outlined.Delete,
+            icon = Icons.Outlined.Close,
             background = colors.muted,
             tint = colors.destructive,
-            enabled = !isTranscribing,
             onClick = onCancel,
-            contentDescription = "Cancel recording",
+            contentDescription = stringResource(
+                if (isTranscribing) R.string.voice_cancel_transcription else R.string.voice_cancel_recording,
+            ),
         )
 
         Row(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .heightIn(min = 48.dp)
                 .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
                 .background(colors.background)
-                .border(1.dp, colors.border, RoundedCornerShape(DesignTokens.Radius.Lg))
-                .padding(horizontal = DesignTokens.Spacing.S4),
+                .border(1.dp, colors.borderStrong, RoundedCornerShape(DesignTokens.Radius.Lg))
+                .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
         ) {
@@ -556,7 +881,7 @@ private fun RecordingBar(
                     color = colors.primary,
                 )
                 Text(
-                    text = "Transcribing…",
+                    text = stringResource(R.string.voice_transcribing),
                     color = colors.textSecondary,
                     fontSize = DesignTokens.Typography.Size.Base,
                 )
@@ -572,14 +897,13 @@ private fun RecordingBar(
             }
         }
 
-        // Stop + transcribe
         CircleIconButton(
             icon = Icons.AutoMirrored.Outlined.Send,
             background = colors.primary,
             tint = colors.onPrimary,
             enabled = !isTranscribing,
             onClick = onSend,
-            contentDescription = "Stop and transcribe",
+            contentDescription = stringResource(R.string.voice_stop_transcribe),
         )
     }
 }
@@ -588,13 +912,14 @@ private fun RecordingBar(
 @Composable
 private fun Waveform(amplitudes: List<Float>, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
+    val reducedMotion = rememberReducedMotion()
     Row(
         modifier = modifier.height(28.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         amplitudes.takeLast(40).forEach { level ->
-            val barHeight = (4f + level * 22f).dp
+            val barHeight = if (reducedMotion) 12.dp else (4f + level * 22f).dp
             Box(
                 modifier = Modifier
                     .width(2.dp)
@@ -606,21 +931,27 @@ private fun Waveform(amplitudes: List<Float>, modifier: Modifier = Modifier) {
     }
 }
 
-/** Small red dot that pulses while recording. */
+/** Small red dot that pulses while recording; static under reduced motion. */
 @Composable
 private fun PulsingDot() {
     val colors = AppTheme.colors
-    val transition = rememberInfiniteTransition(label = "rec")
-    val dotAlpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
-        label = "rec-alpha",
-    )
+    val reducedMotion = rememberReducedMotion()
+    val alpha = if (reducedMotion) {
+        1f
+    } else {
+        val transition = rememberInfiniteTransition(label = "rec")
+        val animated by transition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+            label = "rec-alpha",
+        )
+        animated
+    }
     Box(
         modifier = Modifier
             .size(10.dp)
-            .alpha(dotAlpha)
+            .alpha(alpha)
             .clip(CircleShape)
             .background(colors.destructive),
     )
@@ -634,18 +965,20 @@ private fun formatElapsed(ms: Long): String {
 @Composable
 private fun CircleIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    background: androidx.compose.ui.graphics.Color,
-    tint: androidx.compose.ui.graphics.Color,
+    background: Color,
+    tint: Color,
     onClick: () -> Unit,
     contentDescription: String,
     enabled: Boolean = true,
 ) {
     Box(
         modifier = Modifier
+            .minimumTouchTarget()
             .size(48.dp)
             .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
             .background(background)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { role = Role.Button },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -662,22 +995,30 @@ private fun InputBox(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
-    focusRequester: FocusRequester, // #21
+    focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     val shape = RoundedCornerShape(DesignTokens.Radius.Lg)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val inputLabel = stringResource(R.string.chat_input_label)
+
     Box(
         modifier = modifier
             .clip(shape)
             .background(colors.background)
-            .border(width = 1.dp, color = colors.border, shape = shape)
+            .border(
+                width = if (isFocused) 2.dp else 1.dp,
+                color = if (isFocused) colors.ring else colors.borderStrong,
+                shape = shape,
+            )
             .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
         contentAlignment = Alignment.CenterStart,
     ) {
         if (value.isEmpty()) {
             Text(
-                text = "Type a message…",
+                text = stringResource(R.string.chat_input_hint),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Base,
             )
@@ -685,18 +1026,115 @@ private fun InputBox(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            // #21: attach the focus requester so Edit chip can pull focus here
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
-            singleLine = true,
+                .focusRequester(focusRequester)
+                .semantics { contentDescription = inputLabel },
+            singleLine = false,
+            maxLines = 4,
+            minLines = 1,
+            interactionSource = interactionSource,
             cursorBrush = SolidColor(colors.primary),
             textStyle = LocalTextStyle.current.copy(
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Base,
+                lineHeight = DesignTokens.Typography.Size.Base * 1.4f,
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
         )
+    }
+}
+
+@Composable
+private fun PointToSpeakDialog(
+    message: ChatMessage,
+    isPlaying: Boolean,
+    onPlay: () -> Unit,
+    onSlow: () -> Unit,
+    onStop: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    BackHandler(onBack = onDismiss)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.card)
+                .padding(DesignTokens.Spacing.S6),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.point_to_speak_title),
+                    color = colors.textSecondary,
+                    fontSize = DesignTokens.Typography.Size.Sm,
+                    fontWeight = FontWeight.Medium,
+                )
+                CircleIconButton(
+                    icon = Icons.Outlined.Close,
+                    background = colors.muted,
+                    tint = colors.foreground,
+                    onClick = onDismiss,
+                    contentDescription = stringResource(R.string.point_to_speak_close),
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = message.translatedText,
+                    color = colors.foreground,
+                    fontSize = 32.sp,
+                    lineHeight = 42.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = message.originalText,
+                    color = colors.textSecondary,
+                    fontSize = DesignTokens.Typography.Size.Base,
+                    lineHeight = 22.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = DesignTokens.Spacing.S6),
+                )
+                Text(
+                    text = stringResource(R.string.point_to_speak_hint),
+                    color = colors.textSecondary,
+                    fontSize = DesignTokens.Typography.Size.Sm,
+                    modifier = Modifier.padding(top = DesignTokens.Spacing.S6),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
+            ) {
+                CoralButton(
+                    text = if (isPlaying) stringResource(R.string.chat_stop) else stringResource(R.string.audio_play_audio),
+                    onClick = if (isPlaying) onStop else onPlay,
+                    modifier = Modifier.weight(1f),
+                )
+                CoralButton(
+                    text = stringResource(R.string.audio_slow),
+                    onClick = onSlow,
+                    variant = CoralButtonVariant.Secondary,
+                    modifier = Modifier.weight(1f),
+                    leadingIcon = Icons.Outlined.Speed,
+                )
+            }
+        }
     }
 }

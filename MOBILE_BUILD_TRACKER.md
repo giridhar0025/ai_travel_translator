@@ -60,12 +60,36 @@ history, settings, voice input, audio player.
   downloaded once. Language coverage is 59 (all 20 app languages are included);
   quality is literal.
 
+**UI/UX Sprint 1 + 2 (2026-10-23)**
+
+- Accessibility-safe semantic palette: AA text contrast, 3:1 control boundaries,
+  dedicated dark palette, and a contrast unit test that guards the tokens.
+- 48dp hit targets across chat actions, language picker, history, settings and
+  phrasebook; visible focus rings for keyboard/switch access.
+- TalkBack/VoiceOver semantics: labelled input, tabs, radio choices, live
+  regions for errors, one-shot completion announcements (not per token).
+- Dynamic-type support: multiline input, wrapping labels, line heights, and
+  removal of fixed-height text containers.
+- Reduced motion: typing dots, recording pulse, waveform and auto-scroll honour
+  the system animation setting.
+- Localized core UI in English, Hindi, Telugu and Thai; native language names
+  and searchable language picker.
+- Voice: permission primer, 60s cap, cancel during transcription, retry/type
+  fallback, action-oriented errors, localized TTS errors, explicit Slow action.
+- Offline Pack Manager in Settings with download/delete/status, plus an
+  `Offline` badge on ML Kit results.
+- Retry failed translations without retyping; confirm New chat; history delete
+  with 5s Undo; history rows restore into the live chat.
+- Point-to-Speak full-screen card; medical/emergency phrase categories; phrase
+  favorites persist locally.
+- Changeable language search; device system font for reliable script fallback.
+
 **Verified on device (SM-S938B, Android 17, 2026-10-23)**
 
 - Online: `Where are you → तुम कहाँ हो?`, `Good morning → सुप्रभात`,
   `Good night → शुभ रात्रि` — streamed, with IPA pronunciation.
 - Offline (Wi-Fi + data disabled): `Hello → नमस्ते` via ML Kit, no network calls.
-- 20/20 Android unit tests pass (7 SafeApiCall, 7 Repository, 6 Serialization).
+- 27/27 Android unit tests pass (7 SafeApiCall, 7 Repository, 6 Serialization, 7 contrast).
 
 ## iOS
 

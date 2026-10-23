@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.rememberReducedMotion
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -36,10 +37,11 @@ fun Waveform(
     levels: List<Float>? = null,
 ) {
     val current = remember(barCount) { mutableStateListOf<Float>().apply { repeat(barCount) { add(0.2f) } } }
+    val reducedMotion = rememberReducedMotion()
 
-    LaunchedEffect(isAnimated, barCount, levels) {
+    LaunchedEffect(isAnimated, barCount, levels, reducedMotion) {
         if (levels != null) return@LaunchedEffect
-        if (isAnimated) {
+        if (isAnimated && !reducedMotion) {
             while (true) {
                 for (i in 0 until barCount) current[i] = 0.2f + Random.nextFloat() * 0.8f
                 delay(180)
@@ -67,7 +69,7 @@ fun Waveform(
                 modifier = Modifier
                     .size(width = barWidth, height = height * animated)
                     .clip(RoundedCornerShape(50))
-                    .background(if (isAnimated) activeColor else inactiveColor),
+                    .background(if (isAnimated && !reducedMotion) activeColor else inactiveColor),
             )
         }
     }

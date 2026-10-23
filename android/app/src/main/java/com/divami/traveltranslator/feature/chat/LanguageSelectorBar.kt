@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -23,11 +24,21 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import com.divami.traveltranslator.R
+import com.divami.traveltranslator.designsystem.components.SearchBar
+import com.divami.traveltranslator.designsystem.minimumTouchTarget
+import com.divami.traveltranslator.designsystem.rememberReducedMotion
 import com.divami.traveltranslator.designsystem.components.LanguageFlag
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -61,6 +72,8 @@ fun LanguageSelectorBar(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    val reducedMotion = rememberReducedMotion()
+    var query by rememberSaveable { mutableStateOf("") }
 
     // #11: rememberSaveable so the sheet survives rotation; Saver serialises to String
     var picker by rememberSaveable(stateSaver = PickerModeSaver) { mutableStateOf<PickerMode?>(null) }
@@ -72,6 +85,7 @@ fun LanguageSelectorBar(
         animationSpec = tween(260),
         label = "swap-arrow-rotation",
     )
+    val rotation = if (reducedMotion) swapRotation else animatedRotation
 
     Column(
         modifier = modifier
@@ -88,33 +102,39 @@ fun LanguageSelectorBar(
             LangPill(
                 language = source,
                 modifier = Modifier.weight(1f),
-                onClick = { picker = PickerMode.Source },
+                onClick = {
+                    query = ""
+                    picker = PickerMode.Source
+                },
             )
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .minimumTouchTarget()
+                    .size(48.dp)
                     .clip(RoundedCornerShape(DesignTokens.Radius.Md))
                     .clickable {
-                        // #40: each tap adds 180° so the icon visually spins each time
                         swapRotation += 180f
                         onSwap()
-                    },
+                    }
+                    .semantics { role = Role.Button },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.SwapVert,
-                    contentDescription = "Swap languages",
+                    contentDescription = stringResource(R.string.language_swap),
                     tint = colors.textSecondary,
-                    // #40: apply animated rotation to the icon
                     modifier = Modifier
-                        .size(20.dp)
-                        .rotate(animatedRotation),
+                        .size(24.dp)
+                        .rotate(rotation),
                 )
             }
             LangPill(
                 language = target,
                 modifier = Modifier.weight(1f),
-                onClick = { picker = PickerMode.Target },
+                onClick = {
+                    query = ""
+                    picker = PickerMode.Target
+                },
             )
         }
         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
@@ -124,29 +144,56 @@ fun LanguageSelectorBar(
     if (currentMode != null) {
         AppBottomSheet(onDismissRequest = { picker = null }) {
             Text(
-                text = "Select ${if (currentMode == PickerMode.Source) "Source" else "Target"} Language",
+                text = stringResource(
+                    if (currentMode == PickerMode.Source) R.string.language_select_source
+                    else R.string.language_select_target,
+                ),
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Lg,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = DesignTokens.Spacing.S3),
             )
+            SearchBar(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = stringResource(R.string.language_search),
+            )
             // The language already chosen on the opposite picker is excluded from
-            // the list entirely — you can never build a same-language pair (e.g.
-            // English → English). Use the swap button to flip the direction.
+            // the list entirely — you can never build a same-language pair.
             val otherSide = if (currentMode == PickerMode.Source) target else source
-            val options = AppLanguage.Supported.filter { it != otherSide }
+            val options = AppLanguage.Supported
+                .filter { it != otherSide }
+                .filter { query.isBlank() || it.searchableText.contains(query, ignoreCase = true) }
 
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = DesignTokens.Spacing.S3),
+            ) {
+                if (options.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.language_no_results, query),
+                        color = colors.textSecondary,
+                        fontSize = DesignTokens.Typography.Size.Sm,
+                        modifier = Modifier.padding(vertical = DesignTokens.Spacing.S4),
+                    )
+                }
                 options.forEach { lang ->
                     val selected = lang == (if (currentMode == PickerMode.Source) source else target)
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .minimumTouchTarget()
+                            .heightIn(min = DesignTokens.TouchTarget.Min)
                             .clickable {
                                 if (currentMode == PickerMode.Source) onSourceChange(lang)
                                 else onTargetChange(lang)
                                 picker = null
+                            }
+                            .semantics {
+                                role = Role.RadioButton
+                                this.selected = selected
                             }
                             .padding(vertical = DesignTokens.Spacing.S3),
                         verticalAlignment = Alignment.CenterVertically,
@@ -154,7 +201,7 @@ fun LanguageSelectorBar(
                     ) {
                         LanguageFlag(language = lang, compact = true)
                         Text(
-                            text = lang.displayName,
+                            text = lang.pickerLabel,
                             color = if (selected) colors.primary else colors.foreground,
                             fontSize = DesignTokens.Typography.Size.Base,
                             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
@@ -185,10 +232,13 @@ private fun LangPill(
     val shape = RoundedCornerShape(DesignTokens.Radius.Md)
     Row(
         modifier = modifier
+            .minimumTouchTarget()
+            .heightIn(min = DesignTokens.TouchTarget.Min)
             .clip(shape)
             .background(colors.muted)
-            .border(width = 1.dp, color = colors.border, shape = shape)
+            .border(width = 1.dp, color = colors.borderStrong, shape = shape)
             .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
             .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
@@ -203,6 +253,7 @@ private fun LangPill(
             text = language.displayName,
             color = colors.foreground,
             fontSize = DesignTokens.Typography.Size.Sm,
+            maxLines = 1,
         )
     }
 }

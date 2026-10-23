@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_chat">చాట్</string>
+    <string name="nav_phrases">పదబంధాలు</string>
+    <string name="nav_history">చరిత్ర</string>
+    <string name="nav_settings">సెట్టింగ్‌లు</string>
+
+    <string name="chat_title">సంభాషణ</string>
+    <string name="chat_new">కొత్తది</string>
+    <string name="chat_empty_title">ఏదైనా అనువదించండి</string>
+    <string name="chat_empty_subtitle">ప్రారంభించడానికి టైప్ చేయండి లేదా మైక్ నొక్కండి</string>
+    <string name="chat_input_hint">సందేశం టైప్ చేయండి…</string>
+    <string name="chat_input_label">అనువదించాల్సిన వచనం</string>
+    <string name="chat_send_message">సందేశం పంపండి</string>
+    <string name="chat_record_voice">వాయిస్ రికార్డ్ చేయండి</string>
+    <string name="chat_copied">క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది</string>
+    <string name="chat_dismiss_error">లోపాన్ని తీసివేయండి</string>
+    <string name="chat_retry">మళ్లీ ప్రయత్నించండి</string>
+    <string name="chat_error_title">అనువాదం పూర్తి కాలేదు</string>
+    <string name="chat_offline_badge">ఆఫ్‌లైన్</string>
+    <string name="chat_offline_note">పరికరంలో అనువాదం. నాణ్యత సరళంగా ఉండవచ్చు.</string>
+    <string name="chat_play">వినండి</string>
+    <string name="chat_stop">ఆపండి</string>
+    <string name="chat_loading">లోడ్ అవుతోంది</string>
+    <string name="chat_slow">నెమ్మదిగా</string>
+    <string name="chat_copy_translation">అనువాదాన్ని కాపీ చేయండి</string>
+    <string name="chat_edit_message">సందేశాన్ని సవరించండి</string>
+    <string name="chat_flip_languages">భాషలను మార్చండి</string>
+    <string name="chat_show_to_local">స్థానికుడికి చూపించండి</string>
+    <string name="chat_translation_ready">అనువాదం సిద్ధంగా ఉంది</string>
+    <string name="chat_new_confirm_title">కొత్త సంభాషణ ప్రారంభించాలా?</string>
+    <string name="chat_new_confirm_body">ఈ సంభాషణ చరిత్రలో ఉంటుంది. చాట్ క్లియర్ అవుతుంది.</string>
+    <string name="chat_new_confirm_action">కొత్తది ప్రారంభించండి</string>
+    <string name="chat_cancel">రద్దు చేయండి</string>
+    <string name="chat_jump_latest">తాజాదానికి వెళ్లండి</string>
+    <string name="chat_translating">అనువదిస్తోంది…</string>
+    <string name="context_formal">అధికారికం</string>
+    <string name="context_casual">సాధారణం</string>
+    <string name="context_tourist">పర్యాటకం</string>
+
+    <string name="voice_listening">వింటోంది…</string>
+    <string name="voice_speak_hint">స్పష్టంగా మాట్లాడి, ఆపండి నొక్కండి</string>
+    <string name="voice_transcribing">లిఖిస్తోంది…</string>
+    <string name="voice_cancel_recording">రికార్డింగ్ రద్దు చేయండి</string>
+    <string name="voice_stop_transcribe">ఆపి లిఖించండి</string>
+    <string name="voice_permission_title">మైక్రోఫోన్ ఉపయోగించండి</string>
+    <string name="voice_permission_body">మాటను అనువదించడానికి మైక్రోఫోన్ అవసరం. మీరు ఆపండి నొక్కినప్పుడు మాత్రమే ఆడియో పంపబడుతుంది.</string>
+    <string name="voice_permission_allow">మైక్రోఫోన్ అనుమతించండి</string>
+    <string name="voice_type_instead">బదులుగా టైప్ చేయండి</string>
+    <string name="voice_retry">మళ్లీ ప్రయత్నించండి</string>
+    <string name="voice_error_title">లిఖించలేకపోయింది</string>
+    <string name="voice_mic_error">మైక్రోఫోన్ అందుబాటులో లేదు.</string>
+    <string name="voice_too_short">ఆడియో కనిపించలేదు — మళ్లీ ప్రయత్నించండి.</string>
+    <string name="voice_cancel_transcription">ట్రాన్స్‌క్రిప్షన్ రద్దు చేయండి</string>
+
+    <string name="language_swap">భాషలను మార్చండి</string>
+    <string name="language_select_source">మూల భాషను ఎంచుకోండి</string>
+    <string name="language_select_target">లక్ష్య భాషను ఎంచుకోండి</string>
+    <string name="language_search">భాషలను వెతకండి</string>
+    <string name="language_recent">ఇటీవలివి</string>
+    <string name="language_no_results">“%1$s”కి సరిపోయే భాష లేదు</string>
+
+    <string name="phrases_title">త్వరిత పదబంధాలు</string>
+    <string name="phrases_subtitle">ప్రయాణికులకు సాధారణ పదబంధాలు</string>
+    <string name="phrases_search">పదబంధాలను వెతకండి…</string>
+    <string name="phrases_favorites">ఇష్టమైనవి</string>
+    <string name="phrases_recent">ఇటీవలివి</string>
+    <string name="phrases_favorite">ఇష్టమైనవాటికి జోడించండి</string>
+    <string name="phrases_unfavorite">ఇష్టమైనవాటి నుండి తీసివేయండి</string>
+
+    <string name="history_title">చరిత్ర</string>
+    <string name="history_search">సంభాషణలను వెతకండి…</string>
+    <string name="history_empty_title">ఇంకా సంభాషణలు లేవు</string>
+    <string name="history_empty_body">మీ అనువాద చరిత్రను చూడటానికి సంభాషణ ప్రారంభించండి.</string>
+    <string name="history_no_matches">ఫలితాలు లేవు</string>
+    <string name="history_delete_title">సంభాషణ తొలగించాలా?</string>
+    <string name="history_delete">తొలగించండి</string>
+    <string name="history_undo">వెనక్కి తీసుకోండి</string>
+    <string name="history_deleted">సంభాషణ తొలగించబడింది</string>
+    <string name="history_delete_action">సంభాషణ తొలగించండి</string>
+    <string name="history_messages">%1$d సందేశాలు</string>
+
+    <string name="settings_title">సెట్టింగ్‌లు</string>
+    <string name="settings_account">ఖాతా</string>
+    <string name="settings_translation">అనువాదం</string>
+    <string name="settings_default_language">డిఫాల్ట్ భాష</string>
+    <string name="settings_playback_speed">ప్లేబ్యాక్ వేగం</string>
+    <string name="settings_offline">ఆఫ్‌లైన్</string>
+    <string name="settings_offline_packs">ఆఫ్‌లైన్ భాషలు</string>
+    <string name="settings_offline_packs_subtitle">ప్రయాణం కోసం భాషా ప్యాక్‌లను డౌన్‌లోడ్ చేయండి</string>
+    <string name="settings_offline_ready">ఆఫ్‌లైన్ సిద్ధం</string>
+    <string name="settings_offline_downloading">డౌన్‌లోడ్ అవుతోంది…</string>
+    <string name="settings_offline_download">డౌన్‌లోడ్</string>
+    <string name="settings_offline_delete">డౌన్‌లోడ్ తొలగించండి</string>
+    <string name="settings_privacy">గోప్యత మరియు భద్రత</string>
+    <string name="settings_privacy_subtitle">మీ డేటాను నిర్వహించండి</string>
+    <string name="settings_sign_out">సైన్ అవుట్</string>
+    <string name="settings_log_out">లాగ్ అవుట్</string>
+    <string name="settings_got_it">అర్థమైంది</string>
+    <string name="settings_guest_sync">సెట్టింగ్‌లను సింక్ చేయడానికి సైన్ ఇన్ చేయండి</string>
+    <string name="settings_signed_in">సైన్ ఇన్ చేయబడింది</string>
+    <string name="settings_accessibility">ప్రాప్యత</string>
+    <string name="settings_text_size">వచన పరిమాణం</string>
+
+    <string name="common_back">వెనుకకు</string>
+    <string name="common_close">మూసివేయండి</string>
+    <string name="common_retry">మళ్లీ ప్రయత్నించండి</string>
+    <string name="common_cancel">రద్దు చేయండి</string>
+    <string name="common_delete">తొలగించండి</string>
+    <string name="common_continue">కొనసాగించండి</string>
+    <string name="common_next">తదుపరి</string>
+    <string name="common_skip">దాటవేయండి</string>
+    <string name="common_not_now">ఇప్పుడు కాదు</string>
+    <string name="common_open_settings">సెట్టింగ్‌లు తెరవండి</string>
+</resources>

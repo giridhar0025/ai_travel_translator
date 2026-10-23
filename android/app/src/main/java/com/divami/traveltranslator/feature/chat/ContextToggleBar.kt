@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,11 +14,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.minimumTouchTarget
 
 @Composable
 fun ContextToggleBar(
@@ -57,18 +64,26 @@ private fun ContextChip(
         colors.muted to colors.textSecondary
     }
 
-    val borderColor = Color.Transparent
-
     Row(
         modifier = Modifier
+            .minimumTouchTarget()
+            .heightIn(min = DesignTokens.TouchTarget.Min)
             .clip(shape)
             .background(bg)
-            .border(width = 1.dp, color = borderColor, shape = shape)
+            .border(width = 1.dp, color = if (selected) bg else colors.borderStrong, shape = shape)
             .clickable(onClick = onClick)
+            .semantics {
+                role = Role.RadioButton
+                this.selected = selected
+            }
             .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
     ) {
         Text(
-            text = mode.label,
+            text = when (mode) {
+                ContextMode.Formal -> stringResource(R.string.context_formal)
+                ContextMode.Casual -> stringResource(R.string.context_casual)
+                ContextMode.Tourist -> stringResource(R.string.context_tourist)
+            },
             color = fg,
             fontSize = DesignTokens.Typography.Size.Xs,
             fontWeight = FontWeight.Medium,

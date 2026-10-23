@@ -25,6 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
@@ -38,7 +41,7 @@ class ToastState {
     var current by mutableStateOf<ToastModel?>(null)
         private set
 
-    suspend fun show(model: ToastModel, durationMillis: Long = 2500L) {
+    suspend fun show(model: ToastModel, durationMillis: Long = 5_000L) {
         current = model
         delay(durationMillis)
         current = null
@@ -60,7 +63,7 @@ fun ToastHost(state: ToastState, modifier: Modifier = Modifier) {
         if (toast != null) {
             LaunchedEffect(toast) {
                 // auto-dismiss safety net if caller used `current = ...` directly
-                delay(2500L)
+                delay(5_000L)
                 if (state.current === toast) state.dismiss()
             }
             Row(
@@ -70,7 +73,8 @@ fun ToastHost(state: ToastState, modifier: Modifier = Modifier) {
                     .shadow(elevation = 6.dp, shape = shape)
                     .clip(shape)
                     .background(colors.card)
-                    .border(width = 1.dp, color = colors.border, shape = shape)
+                    .border(width = 1.dp, color = colors.borderStrong, shape = shape)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
                     .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),

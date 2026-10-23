@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_chat">แชต</string>
+    <string name="nav_phrases">วลี</string>
+    <string name="nav_history">ประวัติ</string>
+    <string name="nav_settings">การตั้งค่า</string>
+
+    <string name="chat_title">บทสนทนา</string>
+    <string name="chat_new">ใหม่</string>
+    <string name="chat_empty_title">แปลอะไรก็ได้</string>
+    <string name="chat_empty_subtitle">พิมพ์หรือแตะไมโครโฟนเพื่อเริ่ม</string>
+    <string name="chat_input_hint">พิมพ์ข้อความ…</string>
+    <string name="chat_input_label">ข้อความที่ต้องการแปล</string>
+    <string name="chat_send_message">ส่งข้อความ</string>
+    <string name="chat_record_voice">บันทึกเสียง</string>
+    <string name="chat_copied">คัดลอกไปยังคลิปบอร์ดแล้ว</string>
+    <string name="chat_dismiss_error">ปิดข้อผิดพลาด</string>
+    <string name="chat_retry">ลองอีกครั้ง</string>
+    <string name="chat_error_title">การแปลไม่เสร็จสมบูรณ์</string>
+    <string name="chat_offline_badge">ออฟไลน์</string>
+    <string name="chat_offline_note">แปลบนอุปกรณ์ คุณภาพอาจเรียบง่ายกว่า</string>
+    <string name="chat_play">เล่น</string>
+    <string name="chat_stop">หยุด</string>
+    <string name="chat_loading">กำลังโหลด</string>
+    <string name="chat_slow">ช้า</string>
+    <string name="chat_copy_translation">คัดลอกคำแปล</string>
+    <string name="chat_edit_message">แก้ไขข้อความ</string>
+    <string name="chat_flip_languages">สลับภาษา</string>
+    <string name="chat_show_to_local">แสดงให้คนท้องถิ่นดู</string>
+    <string name="chat_translation_ready">คำแปลพร้อมแล้ว</string>
+    <string name="chat_new_confirm_title">เริ่มบทสนทนาใหม่?</string>
+    <string name="chat_new_confirm_body">บทสนทนานี้จะยังอยู่ในประวัติ แชตจะถูกล้าง</string>
+    <string name="chat_new_confirm_action">เริ่มใหม่</string>
+    <string name="chat_cancel">ยกเลิก</string>
+    <string name="chat_jump_latest">ไปล่าสุด</string>
+    <string name="chat_translating">กำลังแปล…</string>
+    <string name="context_formal">ทางการ</string>
+    <string name="context_casual">ทั่วไป</string>
+    <string name="context_tourist">นักท่องเที่ยว</string>
+
+    <string name="voice_listening">กำลังฟัง…</string>
+    <string name="voice_speak_hint">พูดให้ชัด แล้วแตะหยุด</string>
+    <string name="voice_transcribing">กำลังถอดเสียง…</string>
+    <string name="voice_cancel_recording">ยกเลิกการบันทึก</string>
+    <string name="voice_stop_transcribe">หยุดและถอดเสียง</string>
+    <string name="voice_permission_title">ใช้ไมโครโฟน</string>
+    <string name="voice_permission_body">ต้องใช้ไมโครโฟนเพื่อแปลคำพูด ระบบจะส่งเสียงเมื่อคุณแตะหยุดเท่านั้น</string>
+    <string name="voice_permission_allow">อนุญาตไมโครโฟน</string>
+    <string name="voice_type_instead">พิมพ์แทน</string>
+    <string name="voice_retry">ลองอีกครั้ง</string>
+    <string name="voice_error_title">ถอดเสียงไม่สำเร็จ</string>
+    <string name="voice_mic_error">ไม่สามารถใช้ไมโครโฟนได้</string>
+    <string name="voice_too_short">ไม่พบเสียง — ลองอีกครั้ง</string>
+    <string name="voice_cancel_transcription">ยกเลิกการถอดเสียง</string>
+
+    <string name="language_swap">สลับภาษา</string>
+    <string name="language_select_source">เลือกภาษาต้นทาง</string>
+    <string name="language_select_target">เลือกภาษาเป้าหมาย</string>
+    <string name="language_search">ค้นหาภาษา</string>
+    <string name="language_recent">ล่าสุด</string>
+    <string name="language_no_results">ไม่พบภาษาที่ตรงกับ “%1$s”</string>
+
+    <string name="phrases_title">วลีด่วน</string>
+    <string name="phrases_subtitle">วลีที่ใช้บ่อยสำหรับนักเดินทาง</string>
+    <string name="phrases_search">ค้นหาวลี…</string>
+    <string name="phrases_favorites">รายการโปรด</string>
+    <string name="phrases_recent">ล่าสุด</string>
+    <string name="phrases_favorite">เพิ่มในรายการโปรด</string>
+    <string name="phrases_unfavorite">ลบออกจากรายการโปรด</string>
+
+    <string name="history_title">ประวัติ</string>
+    <string name="history_search">ค้นหาบทสนทนา…</string>
+    <string name="history_empty_title">ยังไม่มีบทสนทนา</string>
+    <string name="history_empty_body">เริ่มแชตเพื่อดูประวัติการแปลของคุณ</string>
+    <string name="history_no_matches">ไม่พบผลลัพธ์</string>
+    <string name="history_delete_title">ลบบทสนทนา?</string>
+    <string name="history_delete">ลบ</string>
+    <string name="history_undo">เลิกทำ</string>
+    <string name="history_deleted">ลบบทสนทนาแล้ว</string>
+    <string name="history_delete_action">ลบบทสนทนา</string>
+    <string name="history_messages">%1$d ข้อความ</string>
+
+    <string name="settings_title">การตั้งค่า</string>
+    <string name="settings_account">บัญชี</string>
+    <string name="settings_translation">การแปล</string>
+    <string name="settings_default_language">ภาษาเริ่มต้น</string>
+    <string name="settings_playback_speed">ความเร็วเสียง</string>
+    <string name="settings_offline">ออฟไลน์</string>
+    <string name="settings_offline_packs">ภาษาออฟไลน์</string>
+    <string name="settings_offline_packs_subtitle">ดาวน์โหลดชุดภาษาสำหรับการเดินทาง</string>
+    <string name="settings_offline_ready">พร้อมใช้ออฟไลน์</string>
+    <string name="settings_offline_downloading">กำลังดาวน์โหลด…</string>
+    <string name="settings_offline_download">ดาวน์โหลด</string>
+    <string name="settings_offline_delete">ลบการดาวน์โหลด</string>
+    <string name="settings_privacy">ความเป็นส่วนตัวและความปลอดภัย</string>
+    <string name="settings_privacy_subtitle">จัดการข้อมูลของคุณ</string>
+    <string name="settings_sign_out">ออกจากระบบ</string>
+    <string name="settings_log_out">ออกจากระบบ</string>
+    <string name="settings_got_it">เข้าใจแล้ว</string>
+    <string name="settings_guest_sync">ลงชื่อเข้าใช้เพื่อซิงก์การตั้งค่า</string>
+    <string name="settings_signed_in">ลงชื่อเข้าใช้แล้ว</string>
+    <string name="settings_accessibility">การเข้าถึง</string>
+    <string name="settings_text_size">ขนาดข้อความ</string>
+
+    <string name="common_back">กลับ</string>
+    <string name="common_close">ปิด</string>
+    <string name="common_retry">ลองอีกครั้ง</string>
+    <string name="common_cancel">ยกเลิก</string>
+    <string name="common_delete">ลบ</string>
+    <string name="common_continue">ดำเนินการต่อ</string>
+    <string name="common_next">ถัดไป</string>
+    <string name="common_skip">ข้าม</string>
+    <string name="common_not_now">ไม่ใช่ตอนนี้</string>
+    <string name="common_open_settings">เปิดการตั้งค่า</string>
+</resources>

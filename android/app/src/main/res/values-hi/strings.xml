@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_chat">चैट</string>
+    <string name="nav_phrases">वाक्यांश</string>
+    <string name="nav_history">इतिहास</string>
+    <string name="nav_settings">सेटिंग्स</string>
+
+    <string name="chat_title">बातचीत</string>
+    <string name="chat_new">नया</string>
+    <string name="chat_empty_title">कुछ भी अनुवाद करें</string>
+    <string name="chat_empty_subtitle">शुरू करने के लिए टाइप करें या माइक दबाएँ</string>
+    <string name="chat_input_hint">संदेश लिखें…</string>
+    <string name="chat_input_label">अनुवाद करने के लिए पाठ</string>
+    <string name="chat_send_message">संदेश भेजें</string>
+    <string name="chat_record_voice">आवाज़ रिकॉर्ड करें</string>
+    <string name="chat_copied">क्लिपबोर्ड पर कॉपी किया गया</string>
+    <string name="chat_dismiss_error">त्रुटि हटाएँ</string>
+    <string name="chat_retry">फिर कोशिश करें</string>
+    <string name="chat_error_title">अनुवाद पूरा नहीं हुआ</string>
+    <string name="chat_offline_badge">ऑफ़लाइन</string>
+    <string name="chat_offline_note">डिवाइस पर अनुवाद। गुणवत्ता सरल हो सकती है।</string>
+    <string name="chat_play">सुनें</string>
+    <string name="chat_stop">रोकें</string>
+    <string name="chat_loading">लोड हो रहा है</string>
+    <string name="chat_slow">धीमा</string>
+    <string name="chat_copy_translation">अनुवाद कॉपी करें</string>
+    <string name="chat_edit_message">संदेश संपादित करें</string>
+    <string name="chat_flip_languages">भाषाएँ बदलें</string>
+    <string name="chat_show_to_local">स्थानीय व्यक्ति को दिखाएँ</string>
+    <string name="chat_translation_ready">अनुवाद तैयार</string>
+    <string name="chat_new_confirm_title">नई बातचीत शुरू करें?</string>
+    <string name="chat_new_confirm_body">यह बातचीत इतिहास में रहेगी। चैट साफ़ हो जाएगी।</string>
+    <string name="chat_new_confirm_action">नई शुरू करें</string>
+    <string name="chat_cancel">रद्द करें</string>
+    <string name="chat_jump_latest">नवीनतम पर जाएँ</string>
+    <string name="chat_translating">अनुवाद हो रहा है…</string>
+    <string name="context_formal">औपचारिक</string>
+    <string name="context_casual">सामान्य</string>
+    <string name="context_tourist">पर्यटक</string>
+
+    <string name="voice_listening">सुन रहा है…</string>
+    <string name="voice_speak_hint">स्पष्ट बोलें, फिर रोकें दबाएँ</string>
+    <string name="voice_transcribing">लिखा जा रहा है…</string>
+    <string name="voice_cancel_recording">रिकॉर्डिंग रद्द करें</string>
+    <string name="voice_stop_transcribe">रोकें और लिखें</string>
+    <string name="voice_permission_title">माइक्रोफ़ोन का उपयोग करें</string>
+    <string name="voice_permission_body">आवाज़ का अनुवाद करने के लिए माइक्रोफ़ोन चाहिए। ऑडियो केवल तब भेजा जाता है जब आप रोकें दबाते हैं।</string>
+    <string name="voice_permission_allow">माइक्रोफ़ोन अनुमति दें</string>
+    <string name="voice_type_instead">इसके बजाय टाइप करें</string>
+    <string name="voice_retry">फिर कोशिश करें</string>
+    <string name="voice_error_title">ट्रांसक्राइब नहीं हो सका</string>
+    <string name="voice_mic_error">माइक्रोफ़ोन उपलब्ध नहीं है।</string>
+    <string name="voice_too_short">कोई ऑडियो नहीं मिला — फिर कोशिश करें।</string>
+    <string name="voice_cancel_transcription">ट्रांसक्रिप्शन रद्द करें</string>
+
+    <string name="language_swap">भाषाएँ बदलें</string>
+    <string name="language_select_source">स्रोत भाषा चुनें</string>
+    <string name="language_select_target">लक्ष्य भाषा चुनें</string>
+    <string name="language_search">भाषाएँ खोजें</string>
+    <string name="language_recent">हाल की</string>
+    <string name="language_no_results">“%1$s” से मेल खाने वाली भाषा नहीं मिली</string>
+
+    <string name="phrases_title">त्वरित वाक्यांश</string>
+    <string name="phrases_subtitle">यात्रियों के लिए सामान्य वाक्यांश</string>
+    <string name="phrases_search">वाक्यांश खोजें…</string>
+    <string name="phrases_favorites">पसंदीदा</string>
+    <string name="phrases_recent">हाल के</string>
+    <string name="phrases_favorite">पसंदीदा में जोड़ें</string>
+    <string name="phrases_unfavorite">पसंदीदा से हटाएँ</string>
+
+    <string name="history_title">इतिहास</string>
+    <string name="history_search">बातचीत खोजें…</string>
+    <string name="history_empty_title">अभी कोई बातचीत नहीं</string>
+    <string name="history_empty_body">अनुवाद इतिहास देखने के लिए बातचीत शुरू करें।</string>
+    <string name="history_no_matches">कोई परिणाम नहीं</string>
+    <string name="history_delete_title">बातचीत हटाएँ?</string>
+    <string name="history_delete">हटाएँ</string>
+    <string name="history_undo">पूर्ववत करें</string>
+    <string name="history_deleted">बातचीत हटा दी गई</string>
+    <string name="history_delete_action">बातचीत हटाएँ</string>
+    <string name="history_messages">%1$d संदेश</string>
+
+    <string name="settings_title">सेटिंग्स</string>
+    <string name="settings_account">खाता</string>
+    <string name="settings_translation">अनुवाद</string>
+    <string name="settings_default_language">डिफ़ॉल्ट भाषा</string>
+    <string name="settings_playback_speed">प्लेबैक गति</string>
+    <string name="settings_offline">ऑफ़लाइन</string>
+    <string name="settings_offline_packs">ऑफ़लाइन भाषाएँ</string>
+    <string name="settings_offline_packs_subtitle">यात्रा के लिए भाषा पैक डाउनलोड करें</string>
+    <string name="settings_offline_ready">ऑफ़लाइन तैयार</string>
+    <string name="settings_offline_downloading">डाउनलोड हो रहा है…</string>
+    <string name="settings_offline_download">डाउनलोड</string>
+    <string name="settings_offline_delete">डाउनलोड हटाएँ</string>
+    <string name="settings_privacy">गोपनीयता और सुरक्षा</string>
+    <string name="settings_privacy_subtitle">अपना डेटा प्रबंधित करें</string>
+    <string name="settings_sign_out">साइन आउट</string>
+    <string name="settings_log_out">लॉग आउट</string>
+    <string name="settings_got_it">समझ गया</string>
+    <string name="settings_guest_sync">सेटिंग्स सिंक करने के लिए साइन इन करें</string>
+    <string name="settings_signed_in">साइन इन है</string>
+    <string name="settings_accessibility">सुलभता</string>
+    <string name="settings_text_size">पाठ का आकार</string>
+
+    <string name="common_back">वापस</string>
+    <string name="common_close">बंद करें</string>
+    <string name="common_retry">फिर कोशिश करें</string>
+    <string name="common_cancel">रद्द करें</string>
+    <string name="common_delete">हटाएँ</string>
+    <string name="common_continue">जारी रखें</string>
+    <string name="common_next">आगे</string>
+    <string name="common_skip">छोड़ें</string>
+    <string name="common_not_now">अभी नहीं</string>
+    <string name="common_open_settings">सेटिंग्स खोलें</string>
+</resources>

@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import android.speech.tts.TextToSpeech
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.core.network.ApiResult
 import com.divami.traveltranslator.data.repository.SpeechRepository
 import com.divami.traveltranslator.data.repository.SynthesizedAudio
@@ -92,6 +93,9 @@ class AudioPlayerViewModel @Inject constructor(
         _state.update { it.copy(preparing = false, playing = false) }
     }
 
+    /** Clear a surfaced playback error after the UI has announced it. */
+    fun clearError() = _state.update { it.copy(error = null) }
+
     private suspend fun playBytes(audio: SynthesizedAudio) {
         val file = withContext(Dispatchers.IO) {
             File.createTempFile("tts_", ".audio", context.cacheDir).apply { writeBytes(audio.bytes) }
@@ -107,7 +111,7 @@ class AudioPlayerViewModel @Inject constructor(
                 _state.update { it.copy(playing = false) }
             }
             setOnErrorListener { _, _, _ ->
-                _state.update { it.copy(preparing = false, playing = false, error = "Playback failed.") }
+                _state.update { it.copy(preparing = false, playing = false, error = context.getString(R.string.audio_playback_failed)) }
                 true
             }
             prepareAsync()
@@ -127,7 +131,7 @@ class AudioPlayerViewModel @Inject constructor(
                     doSpeak(engine, queued.text, queued.languageCode, queued.slow)
                 !ttsReady && queued != null ->
                     _state.update {
-                        it.copy(preparing = false, playing = false, error = "Audio isn't available on this device.")
+                        it.copy(preparing = false, playing = false, error = context.getString(R.string.audio_language_failed))
                     }
             }
         }
@@ -147,8 +151,7 @@ class AudioPlayerViewModel @Inject constructor(
 
     private fun doSpeak(engine: TextToSpeech, text: String, languageCode: String, slow: Boolean) {
         val locale = Locale.forLanguageTag(languageCode)
-        val missingVoiceError = "The ${locale.displayLanguage} voice isn't installed. " +
-            "Add it in your phone's Text-to-speech settings."
+        val missingVoiceError = context.getString(R.string.audio_voice_missing, locale.displayLanguage)
         // Set the language and verify the voice is actually installed. If the data
         // is missing we must NOT speak — the engine would render the script with the
         // default (wrong) voice, which is the "random sounds" the user heard.
@@ -185,7 +188,7 @@ class AudioPlayerViewModel @Inject constructor(
             override fun onError(utteranceId: String?) {
                 watchdog?.cancel()
                 _state.update {
-                    it.copy(preparing = false, playing = false, error = "Couldn't play audio for this language.")
+                    it.copy(preparing = false, playing = false, error = context.getString(R.string.audio_language_failed))
                 }
             }
             override fun onError(utteranceId: String?, errorCode: Int) {
@@ -193,7 +196,7 @@ class AudioPlayerViewModel @Inject constructor(
                 val message = if (errorCode == TextToSpeech.ERROR_NOT_INSTALLED_YET) {
                     missingVoiceError
                 } else {
-                    "Couldn't play audio for this language."
+                    context.getString(R.string.audio_language_failed)
                 }
                 _state.update { it.copy(preparing = false, playing = false, error = message) }
             }
@@ -202,7 +205,7 @@ class AudioPlayerViewModel @Inject constructor(
         // fires — so an unchecked call here is how the spinner used to hang forever.
         if (engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId) != TextToSpeech.SUCCESS) {
             _state.update {
-                it.copy(preparing = false, playing = false, error = "Couldn't play audio for this language.")
+                it.copy(preparing = false, playing = false, error = context.getString(R.string.audio_language_failed))
             }
             return
         }

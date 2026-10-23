@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TravelTranslator" parent="@android:style/Theme.Material.Light.NoActionBar" />
+    <style name="Theme.TravelTranslator" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">#FFF8FAFC</item>
+    </style>
 
     <!-- Android 12+ system splash screen theme -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">

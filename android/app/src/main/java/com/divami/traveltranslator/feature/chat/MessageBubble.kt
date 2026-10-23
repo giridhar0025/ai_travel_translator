@@ -19,10 +19,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -32,6 +35,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.OpenInFull
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,18 +48,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.minimumTouchTarget
+import com.divami.traveltranslator.designsystem.rememberReducedMotion
 import com.divami.traveltranslator.designsystem.components.AppLanguage
 import com.divami.traveltranslator.designsystem.components.LanguageFlag
 
 /** Playback state of a message's translation audio, as seen by its bubble. */
 enum class PlaybackState { Idle, Preparing, Playing }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun MessageBubble(
     message: ChatMessage,
@@ -66,9 +80,11 @@ fun MessageBubble(
     onSlow: () -> Unit,
     onEdit: () -> Unit,
     onCopy: () -> Unit,
+    onShow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    val reducedMotion = rememberReducedMotion()
     val isMine = message.sender == Sender.You
     val showTyping = message.isStreaming && message.translatedText.isBlank()
 
@@ -87,172 +103,225 @@ fun MessageBubble(
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 320.dp)
+                .widthIn(max = 360.dp)
                 .clip(bubbleShape)
-                // My side is coral-tinted, the other person's is neutral — a clear
-                // two-sided conversation.
                 .background(if (isMine) colors.primaryLight else colors.card)
                 .border(
                     width = 1.dp,
-                    color = if (isMine) colors.primary.copy(alpha = 0.25f) else colors.border,
+                    color = if (isMine) colors.primary.copy(alpha = 0.45f) else colors.borderStrong,
                     shape = bubbleShape,
                 ),
         ) {
-          Column(
-            modifier = Modifier.padding(
-                horizontal = DesignTokens.Spacing.S3,
-                vertical = DesignTokens.Spacing.S2,
-            ),
-        ) {
-            // #39: animate the top section when flipped state changes
-            AnimatedContent(
-                targetState = flipped,
-                transitionSpec = {
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = DesignTokens.Spacing.S3,
+                    vertical = DesignTokens.Spacing.S2,
+                ),
+            ) {
+                val topTransition = if (reducedMotion) {
+                    fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                } else {
                     (slideInVertically(tween(220)) { -it / 3 } + fadeIn(tween(220))) togetherWith
                         (slideOutVertically(tween(220)) { it / 3 } + fadeOut(tween(220)))
-                },
-                label = "bubble-top",
-            ) { isFlipped ->
-                if (!isFlipped) {
-                    LanguageSection(
-                        lang = message.originalLanguage,
-                        text = message.originalText,
-                        isTranslation = false,
-                        pronunciation = message.pronunciation,
-                        showTyping = false,
-                    )
-                } else {
-                    LanguageSection(
-                        lang = message.translatedLanguage,
-                        text = message.translatedText,
-                        isTranslation = true,
-                        pronunciation = null,
-                        showTyping = showTyping,
-                    )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S1))
-
-            // #39: animate the bottom section when flipped state changes
-            AnimatedContent(
-                targetState = flipped,
-                transitionSpec = {
+                val bottomTransition = if (reducedMotion) {
+                    fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                } else {
                     (slideInVertically(tween(220)) { it / 3 } + fadeIn(tween(220))) togetherWith
                         (slideOutVertically(tween(220)) { -it / 3 } + fadeOut(tween(220)))
-                },
-                label = "bubble-bottom",
-            ) { isFlipped ->
-                if (!isFlipped) {
-                    LanguageSection(
-                        lang = message.translatedLanguage,
-                        text = message.translatedText,
-                        isTranslation = true,
-                        pronunciation = null,
-                        showTyping = showTyping,
-                    )
-                } else {
-                    LanguageSection(
-                        lang = message.originalLanguage,
-                        text = message.originalText,
-                        isTranslation = false,
-                        pronunciation = message.pronunciation,
-                        showTyping = false,
-                    )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(DesignTokens.Spacing.S1))
-
-            // Action row: inline Play/Stop (long-press = slow), one-tap Copy, and
-            // Edit only on your own most-recent message. No overflow menu.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Play chip — toggles speak/stop; long-press speaks slowly.
-                val isBusy = playback != PlaybackState.Idle
-                val playLabel = when (playback) {
-                    PlaybackState.Playing -> "Stop"
-                    PlaybackState.Preparing -> "Loading"
-                    PlaybackState.Idle -> "Play"
-                }
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
-                        .background(if (isBusy) colors.primary.copy(alpha = 0.18f) else colors.primaryLight)
-                        .combinedClickable(
-                            onClick = onPlayToggle,
-                            onLongClick = onSlow,
+                AnimatedContent(
+                    targetState = flipped,
+                    transitionSpec = { topTransition },
+                    label = "bubble-top",
+                ) { isFlipped ->
+                    if (!isFlipped) {
+                        LanguageSection(
+                            lang = message.originalLanguage,
+                            text = message.originalText,
+                            isTranslation = false,
+                            pronunciation = message.pronunciation,
+                            showTyping = false,
+                            isOffline = false,
                         )
-                        .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
-                ) {
-                    when (playback) {
-                        PlaybackState.Preparing -> CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            strokeWidth = 2.dp,
-                            color = colors.primary,
-                        )
-                        PlaybackState.Playing -> Icon(
-                            imageVector = Icons.Outlined.Stop,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        PlaybackState.Idle -> Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(14.dp),
+                    } else {
+                        LanguageSection(
+                            lang = message.translatedLanguage,
+                            text = message.translatedText,
+                            isTranslation = true,
+                            pronunciation = null,
+                            showTyping = showTyping,
+                            isOffline = message.isOffline,
                         )
                     }
-                    Text(
-                        text = playLabel,
-                        color = colors.primary,
-                        fontSize = DesignTokens.Typography.Size.Xs,
-                        fontWeight = FontWeight.Medium,
-                    )
                 }
 
-                // One-tap Copy
-                BubbleActionIcon(
-                    icon = Icons.Outlined.ContentCopy,
-                    contentDescription = "Copy translation",
-                    onClick = onCopy,
-                )
+                Spacer(modifier = Modifier.height(DesignTokens.Spacing.S1))
 
-                // Edit — only meaningful on your own latest message
-                if (isOwnLatest) {
+                AnimatedContent(
+                    targetState = flipped,
+                    transitionSpec = { bottomTransition },
+                    label = "bubble-bottom",
+                ) { isFlipped ->
+                    if (!isFlipped) {
+                        LanguageSection(
+                            lang = message.translatedLanguage,
+                            text = message.translatedText,
+                            isTranslation = true,
+                            pronunciation = null,
+                            showTyping = showTyping,
+                            isOffline = message.isOffline,
+                        )
+                    } else {
+                        LanguageSection(
+                            lang = message.originalLanguage,
+                            text = message.originalText,
+                            isTranslation = false,
+                            pronunciation = message.pronunciation,
+                            showTyping = false,
+                            isOffline = false,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(DesignTokens.Spacing.S1))
+
+                // Every action is single-tap and at least 48dp. Slow playback is
+                // explicit (long-press remains a shortcut) so switch-access users
+                // can discover and perform it.
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+                    verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+                ) {
+                    PlayChip(
+                        playback = playback,
+                        onClick = onPlayToggle,
+                        onSlow = onSlow,
+                        enabled = message.translatedText.isNotBlank(),
+                    )
+                    SlowChip(
+                        onClick = onSlow,
+                        enabled = message.translatedText.isNotBlank(),
+                    )
                     BubbleActionIcon(
-                        icon = Icons.Outlined.Edit,
-                        contentDescription = "Edit message",
-                        onClick = onEdit,
+                        icon = Icons.Outlined.ContentCopy,
+                        contentDescription = stringResource(R.string.chat_copy_translation),
+                        onClick = onCopy,
+                        enabled = message.translatedText.isNotBlank(),
+                    )
+                    if (isOwnLatest) {
+                        BubbleActionIcon(
+                            icon = Icons.Outlined.Edit,
+                            contentDescription = stringResource(R.string.chat_edit_message),
+                            onClick = onEdit,
+                        )
+                    }
+                    if (message.translatedText.isNotBlank()) {
+                        BubbleActionIcon(
+                            icon = Icons.Outlined.OpenInFull,
+                            contentDescription = stringResource(R.string.chat_show_to_local),
+                            onClick = onShow,
+                        )
+                    }
+                    BubbleActionIcon(
+                        icon = Icons.Outlined.SwapVert,
+                        contentDescription = stringResource(R.string.chat_flip_languages),
+                        onClick = onFlip,
                     )
                 }
             }
-          }
-
-          // Flip control — explicit, labelled corner button, kept for accessibility.
-          Box(
-              modifier = Modifier
-                  .align(Alignment.TopEnd)
-                  .padding(DesignTokens.Spacing.S1)
-                  .size(28.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = onFlip),
-              contentAlignment = Alignment.Center,
-          ) {
-              Icon(
-                  imageVector = Icons.Outlined.SwapVert,
-                  contentDescription = "Flip languages",
-                  tint = colors.primary,
-                  modifier = Modifier.size(16.dp),
-              )
-          }
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PlayChip(
+    playback: PlaybackState,
+    onClick: () -> Unit,
+    onSlow: () -> Unit,
+    enabled: Boolean,
+) {
+    val colors = AppTheme.colors
+    val isBusy = playback != PlaybackState.Idle
+    val label = when (playback) {
+        PlaybackState.Playing -> stringResource(R.string.chat_stop)
+        PlaybackState.Preparing -> stringResource(R.string.chat_loading)
+        PlaybackState.Idle -> stringResource(R.string.chat_play)
+    }
+    Row(
+        modifier = Modifier
+            .minimumTouchTarget()
+            .heightIn(min = DesignTokens.TouchTarget.Min)
+            .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
+            .background(if (isBusy) colors.primary.copy(alpha = 0.18f) else colors.primaryLight)
+            .combinedClickable(
+                enabled = enabled,
+                onClick = onClick,
+                onLongClick = onSlow,
+            )
+            .semantics { role = Role.Button }
+            .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+    ) {
+        when (playback) {
+            PlaybackState.Preparing -> CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = colors.primary,
+            )
+            PlaybackState.Playing -> Icon(
+                imageVector = Icons.Outlined.Stop,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(16.dp),
+            )
+            PlaybackState.Idle -> Icon(
+                imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Text(
+            text = label,
+            color = colors.primary,
+            fontSize = DesignTokens.Typography.Size.Sm,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun SlowChip(onClick: () -> Unit, enabled: Boolean) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .minimumTouchTarget()
+            .heightIn(min = DesignTokens.TouchTarget.Min)
+            .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
+            .background(colors.muted)
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { role = Role.Button }
+            .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S1),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Speed,
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = stringResource(R.string.chat_slow),
+            color = colors.textSecondary,
+            fontSize = DesignTokens.Typography.Size.Sm,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 
@@ -261,21 +330,24 @@ private fun BubbleActionIcon(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val colors = AppTheme.colors
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .minimumTouchTarget()
+            .size(DesignTokens.TouchTarget.Min)
             .clip(CircleShape)
             .background(colors.muted)
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { role = Role.Button },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = colors.textSecondary,
-            modifier = Modifier.size(16.dp),
+            tint = if (enabled) colors.textSecondary else colors.textSecondary.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -287,8 +359,11 @@ private fun LanguageSection(
     isTranslation: Boolean,
     pronunciation: String?,
     showTyping: Boolean,
+    isOffline: Boolean,
 ) {
     val colors = AppTheme.colors
+    val translatingLabel = stringResource(R.string.chat_translating)
+    val offlineLabel = stringResource(R.string.chat_offline_badge)
     Column(modifier = Modifier.padding(top = DesignTokens.Spacing.S1)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -301,15 +376,38 @@ private fun LanguageSection(
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontWeight = FontWeight.Medium,
             )
+            if (isTranslation && isOffline) {
+                Text(
+                    text = offlineLabel,
+                    color = colors.primary,
+                    fontSize = DesignTokens.Typography.Size.Xs,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(DesignTokens.Radius.Sm))
+                        .background(colors.primary.copy(alpha = 0.12f))
+                        .padding(horizontal = DesignTokens.Spacing.S1, vertical = 2.dp),
+                )
+            }
         }
         if (showTyping) {
-            TypingDots(modifier = Modifier.padding(top = DesignTokens.Spacing.S2))
+            TypingDots(
+                modifier = Modifier.padding(top = DesignTokens.Spacing.S2),
+                label = translatingLabel,
+            )
         } else {
             Text(
                 text = text,
                 color = colors.foreground,
-                fontSize = DesignTokens.Typography.Size.Base,
-                modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
+                fontSize = if (isTranslation) DesignTokens.Typography.Size.Xl else DesignTokens.Typography.Size.Base,
+                lineHeight = if (isTranslation) 27.sp else 22.sp,
+                fontWeight = if (isTranslation) FontWeight.Medium else FontWeight.Normal,
+                modifier = Modifier
+                    .padding(top = DesignTokens.Spacing.S1)
+                    .semantics {
+                        if (isTranslation && isOffline) {
+                            stateDescription = offlineLabel
+                        }
+                    },
             )
         }
         if (!pronunciation.isNullOrBlank()) {
@@ -318,16 +416,36 @@ private fun LanguageSection(
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 fontStyle = FontStyle.Italic,
+                lineHeight = 17.sp,
+                modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
+            )
+        }
+        if (isTranslation && isOffline) {
+            Text(
+                text = stringResource(R.string.chat_offline_note),
+                color = colors.textSecondary,
+                fontSize = DesignTokens.Typography.Size.Xs,
+                lineHeight = 17.sp,
                 modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
             )
         }
     }
 }
 
-/** Three dots pulsing in sequence — the "translating…" indicator while streaming. */
+/** Three dots pulsing in sequence — or a static label when motion is reduced. */
 @Composable
-private fun TypingDots(modifier: Modifier = Modifier) {
+private fun TypingDots(modifier: Modifier = Modifier, label: String) {
     val colors = AppTheme.colors
+    val reducedMotion = rememberReducedMotion()
+    if (reducedMotion) {
+        Text(
+            text = label,
+            modifier = modifier,
+            color = colors.textSecondary,
+            fontSize = DesignTokens.Typography.Size.Base,
+        )
+        return
+    }
     val transition = rememberInfiniteTransition(label = "typing")
     Row(
         modifier = modifier,

@@ -25,25 +25,30 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Settings
+import androidx.annotation.StringRes
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 
-enum class AppTab(val label: String) {
-    Chat("Chat"),
-    Phrases("Phrases"),
-    History("History"),
-    Settings("Settings"),
+enum class AppTab(@StringRes val labelRes: Int) {
+    Chat(R.string.nav_chat),
+    Phrases(R.string.nav_phrases),
+    History(R.string.nav_history),
+    Settings(R.string.nav_settings),
 }
 
 private fun iconFor(tab: AppTab, active: Boolean): ImageVector = when (tab) {
@@ -76,14 +81,15 @@ fun BottomNavBar(
         ) {
             for (tab in AppTab.entries) {
                 val active = tab == selected
+                val label = stringResource(tab.labelRes)
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .semantics {
-                            this.selected = active
-                            this.contentDescription = "${tab.label} tab"
-                        }
                         .clickable(onClick = { onSelect(tab) })
+                        .semantics(mergeDescendants = true) {
+                            role = Role.Tab
+                            this.selected = active
+                        }
                         .defaultMinSize(
                             minWidth = 48.dp,
                             minHeight = DesignTokens.TouchTarget.Min,
@@ -109,10 +115,12 @@ fun BottomNavBar(
                             ),
                     )
                     Text(
-                        text = tab.label,
+                        text = label,
                         color = if (active) colors.primary else colors.textSecondary,
                         fontSize = DesignTokens.Typography.Size.Xs,
                         fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,13 +37,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
 import com.divami.traveltranslator.designsystem.components.SearchBar
+import com.divami.traveltranslator.designsystem.minimumTouchTarget
 
 @Composable
 fun QuickPhrasesScreen(
@@ -107,7 +114,9 @@ private fun PhrasesList(
         .flatMap { cat -> cat.phrases.map { cat to it } }
 
     val searchResults = if (query.isBlank()) emptyList()
-    else allPhrases.filter { (_, phrase) -> phrase.contains(query, ignoreCase = true) }
+    else allPhrases.filter { (cat, phrase) ->
+        phrase.contains(query, ignoreCase = true) || cat.displayName.contains(query, ignoreCase = true)
+    }
 
     Column(
         modifier = Modifier
@@ -125,20 +134,20 @@ private fun PhrasesList(
             verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
         ) {
             Text(
-                text = "Quick Phrases",
+                text = stringResource(R.string.phrases_title),
                 color = colors.foreground,
                 fontSize = DesignTokens.Typography.Size.Xl,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Common phrases for travelers",
+                text = stringResource(R.string.phrases_subtitle),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Sm,
             )
             SearchBar(
                 value = query,
                 onValueChange = onQueryChange,
-                placeholder = "Search phrases…",
+                placeholder = stringResource(R.string.phrases_search),
             )
         }
 
@@ -152,7 +161,7 @@ private fun PhrasesList(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "No phrases match \"$query\"",
+                        text = stringResource(R.string.phrases_no_match, query),
                         color = colors.textSecondary,
                         fontSize = DesignTokens.Typography.Size.Sm,
                         textAlign = TextAlign.Center,
@@ -209,7 +218,7 @@ private fun PhrasesList(
                 if (state.favorites.isNotEmpty()) {
                     item("favorites-header") {
                         SectionHeader(
-                            title = "Favorites",
+                            title = stringResource(R.string.phrases_favorites),
                             icon = Icons.Filled.Star,
                             iconTint = colors.accent,
                         )
@@ -231,7 +240,7 @@ private fun PhrasesList(
                 if (state.recent.isNotEmpty()) {
                     item("recent-header") {
                         SectionHeader(
-                            title = "Recent",
+                            title = stringResource(R.string.phrases_recent),
                             icon = Icons.Outlined.AccessTime,
                             iconTint = colors.textSecondary,
                         )
@@ -258,7 +267,7 @@ private fun PhrasesList(
                             .padding(top = DesignTokens.Spacing.S6, bottom = DesignTokens.Spacing.S3),
                     ) {
                         Text(
-                            text = "ALL CATEGORIES",
+                            text = stringResource(R.string.phrases_all_categories),
                             color = colors.textSecondary,
                             fontSize = DesignTokens.Typography.Size.Xs,
                             fontWeight = FontWeight.SemiBold,
@@ -329,7 +338,7 @@ fun PhraseRow(
             .fillMaxWidth()
             .clip(shape)
             .background(colors.card)
-            .border(width = 1.dp, color = colors.border, shape = shape),
+            .border(width = 1.dp, color = colors.borderStrong, shape = shape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -338,17 +347,22 @@ fun PhraseRow(
             fontSize = DesignTokens.Typography.Size.Sm,
             modifier = Modifier
                 .weight(1f)
+                .heightIn(min = DesignTokens.TouchTarget.Min)
                 .clickable(onClick = onTap)
+                .semantics { role = Role.Button }
                 .padding(horizontal = DesignTokens.Spacing.S5, vertical = DesignTokens.Spacing.S3),
         )
         Box(
             modifier = Modifier
+                .minimumTouchTarget()
+                .size(DesignTokens.TouchTarget.Min)
                 .clickable(onClick = onFavoriteToggle)
-                .padding(horizontal = DesignTokens.Spacing.S4, vertical = DesignTokens.Spacing.S3),
+                .semantics { role = Role.Button },
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
+                contentDescription = stringResource(if (isFavorite) R.string.phrases_unfavorite else R.string.phrases_favorite),
                 tint = if (isFavorite) colors.accent else colors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
@@ -369,8 +383,11 @@ private fun CategoryRow(
             .fillMaxWidth()
             .clip(shape)
             .background(colors.card)
-            .border(width = 1.dp, color = colors.border, shape = shape)
+            .border(width = 1.dp, color = colors.borderStrong, shape = shape)
+            .minimumTouchTarget()
+            .heightIn(min = DesignTokens.TouchTarget.Min)
             .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
             .padding(horizontal = DesignTokens.Spacing.S5, vertical = DesignTokens.Spacing.S4),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
@@ -428,16 +445,22 @@ private fun PhraseCategoryScreen(
                 .padding(horizontal = DesignTokens.Spacing.S4)
                 .padding(top = DesignTokens.Spacing.S4, bottom = DesignTokens.Spacing.S4),
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = "Back",
-                tint = colors.foreground,
+            Box(
                 modifier = Modifier
+                    .minimumTouchTarget()
+                    .size(DesignTokens.TouchTarget.Min)
                     .clip(RoundedCornerShape(DesignTokens.Radius.Md))
                     .clickable(onClick = onBack)
-                    .padding(DesignTokens.Spacing.S2)
-                    .size(24.dp),
-            )
+                    .semantics { role = Role.Button },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = stringResource(R.string.common_back),
+                    tint = colors.foreground,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
             Text(
                 text = category.displayName,
                 color = colors.foreground,

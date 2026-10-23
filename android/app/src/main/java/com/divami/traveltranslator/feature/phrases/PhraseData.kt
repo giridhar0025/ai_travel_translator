@@ -2,6 +2,7 @@ package com.divami.traveltranslator.feature.phrases
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingBag
@@ -84,6 +85,24 @@ enum class PhraseCategory(
             "I lost my passport",
             "I need a doctor",
             "This is an emergency",
+            "Call an ambulance",
+            "I am lost",
+            "Please write it down",
+        ),
+    ),
+    Medical(
+        id = "medical",
+        displayName = "Medical",
+        icon = Icons.Outlined.LocalHospital,
+        colors = DesignTokens.Category.Emergencies,
+        phrases = listOf(
+            "I need a doctor",
+            "Where is the pharmacy?",
+            "I'm allergic to peanuts",
+            "I have a medical condition",
+            "I need medicine",
+            "I am deaf or hard of hearing",
+            "Please speak slowly",
         ),
     ),
 }

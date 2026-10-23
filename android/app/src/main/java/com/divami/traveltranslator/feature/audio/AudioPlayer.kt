@@ -41,11 +41,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
 import com.divami.traveltranslator.designsystem.DesignTokens
+import com.divami.traveltranslator.designsystem.rememberReducedMotion
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -93,7 +96,7 @@ fun AudioPlayer(
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.S2))
         Text(
             text = pronunciation?.takeIf { it.isNotBlank() }
-                ?: "Pronunciation guide will appear here",
+                ?: stringResource(R.string.audio_pronunciation_missing),
             color = colors.textSecondary,
             fontSize = DesignTokens.Typography.Size.Sm,
             fontStyle = FontStyle.Italic,
@@ -137,7 +140,7 @@ fun AudioPlayer(
         if (isSlow) {
             Spacer(modifier = Modifier.height(DesignTokens.Spacing.S3))
             Text(
-                text = "Slow mode enabled for clearer pronunciation",
+                text = stringResource(R.string.audio_slow_mode),
                 color = colors.textSecondary,
                 fontSize = DesignTokens.Typography.Size.Xs,
                 modifier = Modifier.fillMaxWidth(),
@@ -150,6 +153,31 @@ fun AudioPlayer(
 @Composable
 private fun PlayerWaveform(isPlaying: Boolean) {
     val colors = AppTheme.colors
+
+    val reducedMotion = rememberReducedMotion()
+    if (reducedMotion) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .clip(RoundedCornerShape(DesignTokens.Radius.Lg))
+                .background(colors.background)
+                .padding(horizontal = DesignTokens.Spacing.S4),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            repeat(BarCount) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(if (isPlaying) colors.primary else colors.border),
+                )
+            }
+        }
+        return
+    }
 
     val seeds = remember { List(BarCount) { Random.nextFloat() * 0.6f + 0.2f } }
     val phaseTransition = rememberInfiniteTransition(label = "playerPhase")
@@ -223,7 +251,7 @@ private fun PlayPauseButton(
             modifier = Modifier.size(28.dp),
         )
         Text(
-            text = if (isPlaying) "Pause" else "Play Audio",
+            text = if (isPlaying) stringResource(R.string.audio_pause) else stringResource(R.string.audio_play_audio),
             color = colors.onPrimary,
             fontSize = DesignTokens.Typography.Size.Base,
             fontWeight = FontWeight.Medium,
@@ -255,7 +283,7 @@ private fun SlowToggle(
             modifier = Modifier.size(20.dp),
         )
         Text(
-            text = "Slow",
+            text = stringResource(R.string.audio_slow),
             color = fg,
             fontSize = DesignTokens.Typography.Size.Base,
             fontWeight = FontWeight.Medium,

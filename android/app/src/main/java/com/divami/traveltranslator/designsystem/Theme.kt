@@ -8,15 +8,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.GoogleFont
-import androidx.compose.ui.text.googlefonts.Font as GoogleFontFont
-import com.divami.traveltranslator.R
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 
 @Immutable
 data class AppColors(
@@ -27,6 +25,8 @@ data class AppColors(
     val muted: Color,
     val mutedForeground: Color,
     val border: Color,
+    /** Strong boundary for inputs/controls: must reach 3:1 against its surface. */
+    val borderStrong: Color,
     val inputBg: Color,
     val textSecondary: Color,
     val destructive: Color,
@@ -36,23 +36,13 @@ data class AppColors(
     val accent: Color,
     val success: Color,
     val onPrimary: Color,
+    val onSuccess: Color,
     val ring: Color,
 )
 
-private val GoogleFontsProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs,
-)
-
-private val InterGoogleFont = GoogleFont("Inter")
-
-private val InterFontFamily = FontFamily(
-    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.Normal),
-    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.Medium),
-    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.SemiBold),
-    GoogleFontFont(googleFont = InterGoogleFont, fontProvider = GoogleFontsProvider, weight = FontWeight.Bold),
-)
+// The platform font is deliberate: it is available offline on first launch and
+// has script fallbacks for Devanagari, Telugu, Thai, Arabic and CJK.
+private val AppFontFamily = FontFamily.Default
 
 private val LightAppColors = AppColors(
     background = DesignTokens.Neutral.Background,
@@ -62,19 +52,21 @@ private val LightAppColors = AppColors(
     muted = DesignTokens.Semantic.Muted,
     mutedForeground = DesignTokens.Semantic.MutedForeground,
     border = DesignTokens.Neutral.Border,
+    borderStrong = DesignTokens.Neutral.BorderStrong,
     inputBg = DesignTokens.Neutral.InputBg,
     textSecondary = DesignTokens.Neutral.TextSecondary,
     destructive = DesignTokens.Semantic.Destructive,
-    primary = DesignTokens.Brand.Coral,
-    primaryDark = DesignTokens.Brand.CoralDark,
-    primaryLight = DesignTokens.Brand.CoralLight,
-    accent = DesignTokens.Brand.Amber,
-    success = DesignTokens.Brand.SuccessGreen,
-    onPrimary = Color.White,
-    ring = DesignTokens.Brand.Coral,
+    primary = DesignTokens.Semantic.Primary,
+    primaryDark = DesignTokens.Semantic.PrimaryDark,
+    primaryLight = DesignTokens.Semantic.Secondary,
+    accent = DesignTokens.Semantic.Accent,
+    success = DesignTokens.Semantic.Success,
+    onPrimary = DesignTokens.Semantic.PrimaryForeground,
+    onSuccess = DesignTokens.Semantic.SuccessForeground,
+    ring = DesignTokens.Semantic.Ring,
 )
 
-private val DarkAppColors = LightAppColors.copy(
+private val DarkAppColors = AppColors(
     background = DesignTokens.Dark.Background,
     foreground = DesignTokens.Dark.Foreground,
     card = DesignTokens.Dark.Card,
@@ -82,38 +74,73 @@ private val DarkAppColors = LightAppColors.copy(
     muted = DesignTokens.Dark.Muted,
     mutedForeground = DesignTokens.Dark.MutedForeground,
     border = DesignTokens.Dark.Border,
+    borderStrong = DesignTokens.Dark.BorderStrong,
     inputBg = DesignTokens.Dark.Input,
     textSecondary = DesignTokens.Dark.MutedForeground,
     destructive = DesignTokens.Dark.Destructive,
+    primary = DesignTokens.Dark.Primary,
+    primaryDark = DesignTokens.Dark.PrimaryDark,
+    primaryLight = DesignTokens.Dark.Secondary,
+    accent = DesignTokens.Dark.Accent,
+    success = DesignTokens.Dark.Success,
+    onPrimary = DesignTokens.Dark.PrimaryForeground,
+    onSuccess = DesignTokens.Dark.SuccessForeground,
+    ring = DesignTokens.Dark.Ring,
 )
 
 val LocalAppColors = staticCompositionLocalOf { LightAppColors }
 
+private fun appTextStyle(
+    size: TextUnit,
+    weight: FontWeight,
+): TextStyle = TextStyle(
+    fontFamily = AppFontFamily,
+    fontSize = size,
+    fontWeight = weight,
+    lineHeight = (size.value * 1.45f).sp,
+)
+
 private val AppTypography = Typography(
-    displayLarge   = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Xxl, fontWeight = FontWeight.SemiBold),
-    headlineLarge  = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Xl,  fontWeight = FontWeight.SemiBold),
-    titleLarge     = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Lg,  fontWeight = FontWeight.Medium),
-    bodyLarge      = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Base, fontWeight = FontWeight.Normal),
-    bodyMedium     = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Sm,  fontWeight = FontWeight.Normal),
-    labelMedium    = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Sm,  fontWeight = FontWeight.Medium),
-    labelSmall     = TextStyle(fontFamily = InterFontFamily, fontSize = DesignTokens.Typography.Size.Xs,  fontWeight = FontWeight.Normal),
+    displayLarge = appTextStyle(DesignTokens.Typography.Size.Xxl, FontWeight.SemiBold),
+    headlineLarge = appTextStyle(DesignTokens.Typography.Size.Xl, FontWeight.SemiBold),
+    titleLarge = appTextStyle(DesignTokens.Typography.Size.Lg, FontWeight.Medium),
+    bodyLarge = appTextStyle(DesignTokens.Typography.Size.Base, FontWeight.Normal),
+    bodyMedium = appTextStyle(DesignTokens.Typography.Size.Sm, FontWeight.Normal),
+    labelMedium = appTextStyle(DesignTokens.Typography.Size.Sm, FontWeight.Medium),
+    labelSmall = appTextStyle(DesignTokens.Typography.Size.Xs, FontWeight.Normal),
 )
 
 private fun AppColors.toMaterialColorScheme(dark: Boolean) = if (dark) {
     darkColorScheme(
-        primary = primary, onPrimary = onPrimary,
-        background = background, onBackground = foreground,
-        surface = card, onSurface = cardForeground,
-        surfaceVariant = muted, onSurfaceVariant = mutedForeground,
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primaryLight,
+        onPrimaryContainer = primaryDark,
+        background = background,
+        onBackground = foreground,
+        surface = card,
+        onSurface = cardForeground,
+        surfaceVariant = muted,
+        onSurfaceVariant = mutedForeground,
+        outline = borderStrong,
         error = destructive,
+        onError = onPrimary,
     )
 } else {
     lightColorScheme(
-        primary = primary, onPrimary = onPrimary,
-        background = background, onBackground = foreground,
-        surface = card, onSurface = cardForeground,
-        surfaceVariant = muted, onSurfaceVariant = mutedForeground,
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primaryLight,
+        onPrimaryContainer = primaryDark,
+        background = background,
+        onBackground = foreground,
+        surface = card,
+        onSurface = cardForeground,
+        surfaceVariant = muted,
+        onSurfaceVariant = mutedForeground,
+        outline = borderStrong,
         error = destructive,
+        onError = onPrimary,
     )
 }
 
@@ -129,7 +156,9 @@ fun TravelTranslatorTheme(
             typography = AppTypography,
         ) {
             androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.material3.LocalTextStyle provides androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = InterFontFamily),
+                androidx.compose.material3.LocalTextStyle provides androidx.compose.material3.LocalTextStyle.current.copy(
+                    fontFamily = AppFontFamily,
+                ),
                 content = content,
             )
         }

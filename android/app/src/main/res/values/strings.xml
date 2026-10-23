@@ -1,4 +1,186 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Travel Translator</string>
+
+    <!-- Navigation -->
+    <string name="nav_chat">Chat</string>
+    <string name="nav_phrases">Phrases</string>
+    <string name="nav_history">History</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Conversation</string>
+    <string name="chat_new">New</string>
+    <string name="chat_new_chat">New chat</string>
+    <string name="chat_empty_title">Translate anything</string>
+    <string name="chat_empty_subtitle">Type or tap the mic to begin</string>
+    <string name="chat_input_hint">Type a message…</string>
+    <string name="chat_input_label">Text to translate</string>
+    <string name="chat_send_message">Send message</string>
+    <string name="chat_record_voice">Record voice</string>
+    <string name="chat_copied">Copied to clipboard</string>
+    <string name="chat_dismiss_error">Dismiss error</string>
+    <string name="chat_retry">Retry</string>
+    <string name="chat_error_title">Translation didn’t finish</string>
+    <string name="chat_offline_badge">Offline</string>
+    <string name="chat_offline_note">On-device result. Quality may be simpler.</string>
+    <string name="chat_play">Play</string>
+    <string name="chat_stop">Stop</string>
+    <string name="chat_loading">Loading</string>
+    <string name="chat_slow">Slow</string>
+    <string name="chat_copy_translation">Copy translation</string>
+    <string name="chat_edit_message">Edit message</string>
+    <string name="chat_flip_languages">Flip languages</string>
+    <string name="chat_show_to_local">Show to local</string>
+    <string name="chat_translation_ready">Translation ready</string>
+    <string name="chat_new_confirm_title">Start a new conversation?</string>
+    <string name="chat_new_confirm_body">This conversation stays in History. The chat will be cleared.</string>
+    <string name="chat_new_confirm_action">Start new</string>
+    <string name="chat_cancel">Cancel</string>
+    <string name="chat_jump_latest">Jump to latest</string>
+    <string name="chat_translating">Translating…</string>
+    <string name="context_formal">Formal</string>
+    <string name="context_casual">Casual</string>
+    <string name="context_tourist">Tourist</string>
+
+    <!-- Voice -->
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_speak_hint">Speak clearly, then tap stop</string>
+    <string name="voice_transcribing">Transcribing…</string>
+    <string name="voice_cancel_recording">Cancel recording</string>
+    <string name="voice_stop_transcribe">Stop and transcribe</string>
+    <string name="voice_permission_title">Use your microphone</string>
+    <string name="voice_permission_body">To translate speech, the app needs your microphone. Audio is only sent when you tap stop and translate.</string>
+    <string name="voice_permission_allow">Allow microphone</string>
+    <string name="voice_type_instead">Type instead</string>
+    <string name="voice_retry">Try again</string>
+    <string name="voice_error_title">Couldn’t transcribe</string>
+    <string name="voice_mic_error">Couldn’t access the microphone.</string>
+    <string name="voice_too_short">No audio captured — try again.</string>
+    <string name="voice_max_duration">Recording stopped at the 60 second limit.</string>
+    <string name="voice_cancel_transcription">Cancel transcription</string>
+
+    <!-- Language picker -->
+    <string name="language_swap">Swap languages</string>
+    <string name="language_select_source">Select source language</string>
+    <string name="language_select_target">Select target language</string>
+    <string name="language_search">Search languages</string>
+    <string name="language_recent">Recent</string>
+    <string name="language_no_results">No languages match “%1$s”</string>
+
+    <!-- Phrases -->
+    <string name="phrases_title">Quick Phrases</string>
+    <string name="phrases_subtitle">Common phrases for travelers</string>
+    <string name="phrases_search">Search phrases…</string>
+    <string name="phrases_no_match">No phrases match “%1$s”</string>
+    <string name="phrases_favorites">Favorites</string>
+    <string name="phrases_recent">Recent</string>
+    <string name="phrases_all_categories">ALL CATEGORIES</string>
+    <string name="phrases_favorite">Add to favorites</string>
+    <string name="phrases_unfavorite">Remove from favorites</string>
+    <string name="phrases_show">Show phrase</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_search">Search conversations…</string>
+    <string name="history_empty_title">No conversations yet</string>
+    <string name="history_empty_body">Start chatting to see your translation history here.</string>
+    <string name="history_no_matches">No matches</string>
+    <string name="history_no_matches_body">No conversations match “%1$s”</string>
+    <string name="history_error_title">Couldn’t load history</string>
+    <string name="history_delete_title">Delete conversation?</string>
+    <string name="history_delete_body">“%1$s” will be removed from your history.</string>
+    <string name="history_delete">Delete</string>
+    <string name="history_deleted">Conversation deleted</string>
+    <string name="history_undo">Undo</string>
+    <string name="history_delete_action">Delete conversation</string>
+    <string name="history_messages">%1$d messages</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_translation">Translation</string>
+    <string name="settings_default_language">Default Language</string>
+    <string name="settings_playback_speed">Playback Speed</string>
+    <string name="settings_offline">Offline</string>
+    <string name="settings_offline_packs">Offline Languages</string>
+    <string name="settings_offline_packs_subtitle">Download language packs for travel</string>
+    <string name="settings_offline_ready">Ready offline</string>
+    <string name="settings_offline_downloading">Downloading…</string>
+    <string name="settings_offline_failed">Couldn’t download this pack</string>
+    <string name="settings_offline_download">Download</string>
+    <string name="settings_offline_delete">Remove download</string>
+    <string name="settings_privacy">Privacy &amp; Security</string>
+    <string name="settings_privacy_subtitle">Manage your data</string>
+    <string name="settings_sign_out">Sign Out</string>
+    <string name="settings_log_out">Log Out</string>
+    <string name="settings_log_out_title">Log out?</string>
+    <string name="settings_log_out_body">You’ll need to sign in again to access your account.</string>
+    <string name="settings_log_out_confirm">Log out</string>
+    <string name="settings_got_it">Got it</string>
+    <string name="settings_signed_in">Signed in</string>
+    <string name="settings_guest_sync">Sign in to sync your settings</string>
+    <string name="settings_normal">Normal</string>
+    <string name="settings_slow">Slow</string>
+    <string name="settings_very_slow">Very Slow</string>
+    <string name="settings_privacy_body">When you are online, the text you translate is sent to the translation service. When a language pack is ready offline, the app can translate on-device with no network. Your conversation history is available in the app and can be deleted at any time.</string>
+    <string name="settings_accessibility">Accessibility</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_text_size_body">Respect system text size. Use your device’s display settings for larger text.</string>
+    <string name="settings_reduce_motion">Reduce motion</string>
+    <string name="settings_reduce_motion_body">Uses your device’s “Remove animations” setting.</string>
+    <string name="settings_auto_play">Auto-play audio</string>
+    <string name="settings_auto_play_body">Speak translations automatically after they arrive.</string>
+    <string name="settings_haptics">Haptics</string>
+    <string name="settings_haptics_body">Vibrate when recording starts and stops.</string>
+    <string name="settings_high_contrast">High contrast</string>
+    <string name="settings_high_contrast_body">Use stronger borders and higher-contrast text.</string>
+    <string name="settings_version">Travel Translator AI · v%1$s</string>
+
+    <!-- Audio / point-to-speak -->
+    <string name="audio_play_audio">Play audio</string>
+    <string name="audio_pause">Pause</string>
+    <string name="audio_slow">Slow</string>
+    <string name="audio_slow_mode">Slow mode enabled for clearer pronunciation</string>
+    <string name="audio_voice_missing">The %1$s voice isn’t installed. Add it in your phone’s Text-to-speech settings.</string>
+    <string name="audio_playback_failed">Playback failed.</string>
+    <string name="audio_language_failed">Couldn’t play audio for this language.</string>
+    <string name="audio_pronunciation_missing">Pronunciation guide isn’t available for this language.</string>
+    <string name="point_to_speak_title">Show this</string>
+    <string name="point_to_speak_hint">Turn the screen toward the person you’re speaking with.</string>
+    <string name="point_to_speak_close">Close</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_close">Close</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_continue">Continue</string>
+    <string name="common_next">Next</string>
+    <string name="common_skip">Skip</string>
+    <string name="common_not_now">Not now</string>
+    <string name="common_open_settings">Open Settings</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_slide1_title">Speak instantly</string>
+    <string name="onboarding_slide1_body">Communicate with locals in real time using AI-powered translation.</string>
+    <string name="onboarding_slide2_title">Translate naturally</string>
+    <string name="onboarding_slide2_body">Get accurate, context-aware translations that sound natural.</string>
+    <string name="onboarding_slide3_title">Play audio to locals</string>
+    <string name="onboarding_slide3_body">Let the app speak for you with native pronunciation.</string>
+    <string name="onboarding_choose_language">Choose your language</string>
+    <string name="onboarding_choose_language_body">Select the language you speak. You can change it later.</string>
+    <string name="onboarding_mic_title">Enable microphone</string>
+    <string name="onboarding_mic_body">Allow microphone access to use voice translation. You can skip this and type instead.</string>
+    <string name="onboarding_mic_blocked_title">Microphone access blocked</string>
+    <string name="onboarding_mic_blocked_body">Enable microphone in Settings to use voice translation, or type instead.</string>
+    <string name="onboarding_enable_mic">Enable microphone</string>
+    <string name="onboarding_maybe_later">Maybe later</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_network">No internet connection. Check your network and retry.</string>
+    <string name="error_timeout">The translation took too long. Try again.</string>
+    <string name="error_unauthorized">Please sign in again to continue.</string>
 </resources>
