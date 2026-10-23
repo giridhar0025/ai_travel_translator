@@ -73,7 +73,12 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_base_url: str = "https://api.groq.com/openai/v1"
     groq_model_translate: str = "openai/gpt-oss-120b"
+    groq_model_stt: str = "whisper-large-v3-turbo"
     groq_timeout_seconds: float = 60.0
+
+    # STT provider selection. HF credits can run out independently of the chat
+    # backend, so auto prefers Groq's free Whisper tier when a Groq key exists.
+    stt_provider: str = "auto"
 
     # CORS — comma-separated list
     cors_allowed_origins: str = ""
@@ -91,6 +96,13 @@ class Settings(BaseSettings):
         router.
         """
         choice = self.llm_provider.strip().lower()
+        if choice in {"hf", "groq"}:
+            return choice
+        return "groq" if self.groq_api_key.strip() else "hf"
+
+    @property
+    def resolved_stt_provider(self) -> str:
+        choice = self.stt_provider.strip().lower()
         if choice in {"hf", "groq"}:
             return choice
         return "groq" if self.groq_api_key.strip() else "hf"

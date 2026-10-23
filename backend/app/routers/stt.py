@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from app.db.models.user import User
 from app.deps import get_current_user
 from app.schemas.stt import TranscriptionResponse
+from app.services.llm_errors import LLMInferenceError
 from app.services.stt import STTService, get_stt_service
 
 router = APIRouter(prefix="/stt", tags=["stt"])
@@ -73,12 +74,18 @@ async def transcribe(
 
     _check_duration_if_possible(content)
 
-    result = await service.transcribe(
-        content,
-        language,
-        content_type=audio.content_type or "audio/wav",
-        filename=audio.filename or "audio",
-    )
+    try:
+        result = await service.transcribe(
+            content,
+            language,
+            content_type=audio.content_type or "audio/wav",
+            filename=audio.filename or "audio",
+        )
+    except LLMInferenceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Speech transcription is temporarily unavailable. Please try again.",
+        ) from exc
     return TranscriptionResponse(
         transcript=result.transcript,
         language=result.language,

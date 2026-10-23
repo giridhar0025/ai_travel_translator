@@ -3,15 +3,15 @@ package com.divami.traveltranslator.feature.chat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -20,6 +20,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.divami.traveltranslator.R
 import com.divami.traveltranslator.designsystem.AppTheme
@@ -33,14 +35,16 @@ fun ContextToggleBar(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S2),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         ContextMode.entries.forEach { mode ->
             ContextChip(
                 mode = mode,
                 selected = mode == selected,
                 onClick = { onSelect(mode) },
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -51,6 +55,7 @@ private fun ContextChip(
     mode: ContextMode,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     val shape = RoundedCornerShape(DesignTokens.Radius.Md)
@@ -65,7 +70,7 @@ private fun ContextChip(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .minimumTouchTarget()
             .heightIn(min = DesignTokens.TouchTarget.Min)
             .clip(shape)
@@ -76,7 +81,9 @@ private fun ContextChip(
                 role = Role.RadioButton
                 this.selected = selected
             }
-            .padding(horizontal = DesignTokens.Spacing.S3, vertical = DesignTokens.Spacing.S2),
+            .padding(horizontal = DesignTokens.Spacing.S2, vertical = DesignTokens.Spacing.S2),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = when (mode) {
@@ -87,6 +94,9 @@ private fun ContextChip(
             color = fg,
             fontSize = DesignTokens.Typography.Size.Xs,
             fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

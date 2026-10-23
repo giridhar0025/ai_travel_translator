@@ -80,6 +80,49 @@ class GroqClient:
 
         raise GroqInferenceError("Groq chat retries exhausted")
 
+
+    async def transcribe_openai(
+        self,
+        *,
+        model: str,
+        audio_bytes: bytes,
+        content_type: str = "audio/wav",
+        filename: str = "audio",
+        language: str | None = None,
+        max_retries: int = 2,
+    ) -> dict[str, Any]:
+        """Transcribe audio through Groq's OpenAI-compatible Whisper endpoint."""
+        data: dict[str, Any] = {"model": model, "response_format": "json"}
+        if language:
+            data["language"] = language
+        backoff = 1.0
+        last_text = ""
+
+        for attempt in range(max_retries + 1):
+            try:
+                response = await self._client.post(
+                    "/audio/transcriptions",
+                    files={"file": (filename, audio_bytes, content_type)},
+                    data=data,
+                )
+            except httpx.HTTPError as exc:
+                raise GroqInferenceError(f"Groq STT request failed: {exc}") from exc
+
+            if response.status_code in _RETRYABLE_STATUSES:
+                last_text = response.text[:200]
+                if attempt < max_retries:
+                    await asyncio.sleep(_retry_after_seconds(response, backoff))
+                    backoff *= 2
+                    continue
+                break
+
+            if response.status_code >= 400:
+                raise GroqInferenceError(f"Groq STT {response.status_code}: {response.text[:200]}")
+
+            return response.json()
+
+        raise GroqInferenceError(f"Groq STT retries exhausted: {last_text}")
+
     async def chat_completion_stream(
         self,
         *,

@@ -80,3 +80,58 @@ async def test_transcribe_handles_string_response() -> None:
     result = await svc.transcribe(b"x")
 
     assert result.transcript == "raw string response"
+
+
+class _FakeGroqClient:
+    def __init__(self, response):
+        self.response = response
+        self.calls: list[dict] = []
+
+    async def transcribe_openai(
+        self,
+        *,
+        model,
+        audio_bytes,
+        content_type="audio/wav",
+        filename="audio",
+        language=None,
+        max_retries=2,
+    ):
+        self.calls.append(
+            {
+                "model": model,
+                "audio_bytes": audio_bytes,
+                "content_type": content_type,
+                "filename": filename,
+                "language": language,
+            }
+        )
+        return self.response
+
+
+@pytest.mark.asyncio
+async def test_transcribe_uses_groq_when_selected() -> None:
+    hf = _FakeHFClient(response={"text": "wrong backend"})
+    groq = _FakeGroqClient(response={"text": "Hello from Groq", "language": "en"})
+    svc = STTService(
+        hf,  # type: ignore[arg-type]
+        "openai/whisper-large-v3",
+        groq=groq,  # type: ignore[arg-type]
+        groq_model="whisper-large-v3-turbo",
+        stt_provider="groq",
+    )
+
+    result = await svc.transcribe(b"<audio>", language="en", content_type="audio/mp4")
+
+    assert result.transcript == "Hello from Groq"
+    assert result.model == "whisper-large-v3-turbo"
+    assert not hf.calls
+    assert groq.calls == [
+        {
+            "model": "whisper-large-v3-turbo",
+            "audio_bytes": b"<audio>",
+            "content_type": "audio/mp4",
+            "filename": "audio",
+            "language": "en",
+        }
+    ]

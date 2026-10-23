@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass
 
 from app.config import get_settings
+from app.services.groq_client import GroqClient, get_groq_client
 from app.services.hf_client import HuggingFaceClient, get_hf_client
 
 
@@ -24,10 +25,22 @@ class TranscriptionResult:
 
 
 class STTService:
-    def __init__(self, hf: HuggingFaceClient, model: str, provider: str = "together") -> None:
+    def __init__(
+        self,
+        hf: HuggingFaceClient,
+        model: str,
+        provider: str = "together",
+        *,
+        groq: GroqClient | None = None,
+        groq_model: str = "whisper-large-v3-turbo",
+        stt_provider: str = "hf",
+    ) -> None:
         self.hf = hf
         self.model = model
         self.provider = provider
+        self.groq = groq
+        self.groq_model = groq_model
+        self.stt_provider = stt_provider
 
     async def transcribe(
         self,
@@ -37,13 +50,24 @@ class STTService:
         filename: str = "audio",
     ) -> TranscriptionResult:
         start = time.monotonic()
-        raw = await self.hf.transcribe_openai(
-            provider=self.provider,
-            model=self.model,
-            audio_bytes=audio_bytes,
-            content_type=content_type,
-            filename=filename,
-        )
+        if self.stt_provider == "groq" and self.groq is not None:
+            raw = await self.groq.transcribe_openai(
+                model=self.groq_model,
+                audio_bytes=audio_bytes,
+                content_type=content_type,
+                filename=filename,
+                language=language,
+            )
+            used_model = self.groq_model
+        else:
+            raw = await self.hf.transcribe_openai(
+                provider=self.provider,
+                model=self.model,
+                audio_bytes=audio_bytes,
+                content_type=content_type,
+                filename=filename,
+            )
+            used_model = self.model
         latency_ms = int((time.monotonic() - start) * 1000)
 
         # OpenAI-compatible ASR returns {"text": "...", "language": "en", ...}
@@ -57,7 +81,7 @@ class STTService:
             language=language or detected,
             confidence=None,  # not returned by the router
             latency_ms=latency_ms,
-            model=self.model,
+            model=used_model,
         )
 
 
@@ -68,7 +92,15 @@ def get_stt_service() -> STTService:
     global _service
     if _service is None:
         settings = get_settings()
-        _service = STTService(get_hf_client(), settings.hf_model_stt, settings.hf_stt_provider)
+        resolved = settings.resolved_stt_provider
+        _service = STTService(
+            get_hf_client(),
+            settings.hf_model_stt,
+            settings.hf_stt_provider,
+            groq=get_groq_client() if resolved == "groq" else None,
+            groq_model=settings.groq_model_stt,
+            stt_provider=resolved,
+        )
     return _service
 
 

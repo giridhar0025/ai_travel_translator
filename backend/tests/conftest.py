@@ -22,6 +22,7 @@ if test_db_url := os.environ.get("TEST_DATABASE_URL"):
 # Tests mock the HF router. A developer's local .env may contain a Groq key,
 # which would otherwise change the resolved provider and bypass those mocks.
 os.environ["LLM_PROVIDER"] = "hf"
+os.environ["STT_PROVIDER"] = "hf"
 
 import pytest
 from fastapi.testclient import TestClient
