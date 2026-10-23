@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -143,7 +145,10 @@ fun LanguageSelectorBar(
 
     val currentMode = picker
     if (currentMode != null) {
-        AppBottomSheet(onDismissRequest = { picker = null }) {
+        AppBottomSheet(
+            onDismissRequest = { picker = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
             Text(
                 text = stringResource(
                     if (currentMode == PickerMode.Source) R.string.language_select_source
@@ -168,6 +173,8 @@ fun LanguageSelectorBar(
 
             Column(
                 modifier = Modifier
+                    .navigationBarsPadding()
+                    .heightIn(max = 360.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(top = DesignTokens.Spacing.S3),
             ) {

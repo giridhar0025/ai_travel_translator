@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -90,10 +91,15 @@ fun ConversationHistoryScreen(
                     placeholder = stringResource(R.string.history_search),
                 )
             }
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
 
             when {
                 state.items.isEmpty() && !state.loading ->
-                    EmptyState(query = state.query, error = state.error)
+                    EmptyState(
+                        query = state.query,
+                        error = state.error,
+                        onRetry = viewModel::refresh,
+                    )
 
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -219,7 +225,7 @@ private fun UndoBar(onUndo: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun EmptyState(query: String, error: String?) {
+private fun EmptyState(query: String, error: String?, onRetry: () -> Unit) {
     val colors = AppTheme.colors
     Box(
         modifier = Modifier
@@ -268,6 +274,15 @@ private fun EmptyState(query: String, error: String?) {
                 fontSize = DesignTokens.Typography.Size.Sm,
                 textAlign = TextAlign.Center,
             )
+            if (error != null) {
+                TextButton(onClick = onRetry) {
+                    Text(
+                        text = stringResource(R.string.common_retry),
+                        color = colors.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
     }
 }
@@ -309,33 +324,37 @@ private fun ConversationRow(
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Row(
+            Text(
+                text = conv.title,
+                color = colors.foreground,
+                fontSize = DesignTokens.Typography.Size.Base,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = DesignTokens.Spacing.S1),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = conv.title,
-                    color = colors.foreground,
-                    fontSize = DesignTokens.Typography.Size.Base,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
+                    text = pluralStringResource(
+                        R.plurals.history_messages,
+                        conv.messageCount,
+                        conv.messageCount,
+                    ),
+                    color = colors.textSecondary,
+                    fontSize = DesignTokens.Typography.Size.Xs,
+                    modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = conv.timeLabel,
                     color = colors.textSecondary,
                     fontSize = DesignTokens.Typography.Size.Xs,
-                    modifier = Modifier.padding(start = DesignTokens.Spacing.S2),
                 )
             }
-            Text(
-                text = pluralStringResource(R.plurals.history_messages, conv.messageCount, conv.messageCount),
-                color = colors.textSecondary,
-                fontSize = DesignTokens.Typography.Size.Xs,
-                modifier = Modifier.padding(top = DesignTokens.Spacing.S1),
-            )
         }
         Box(
             modifier = Modifier

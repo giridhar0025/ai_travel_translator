@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -152,6 +153,7 @@ private fun PhrasesList(
                 placeholder = stringResource(R.string.phrases_search),
             )
         }
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
 
         if (query.isNotBlank()) {
             // Search mode: flat list of matched phrases or empty state

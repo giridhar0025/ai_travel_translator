@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -105,6 +107,7 @@ fun SettingsScreen(
                 modifier = Modifier.semantics { heading() },
             )
         }
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
 
         Column(
             modifier = Modifier
@@ -246,7 +249,10 @@ fun SettingsScreen(
     }
 
     if (showLanguageSheet) {
-        AppBottomSheet(onDismissRequest = { showLanguageSheet = false }) {
+        AppBottomSheet(
+            onDismissRequest = { showLanguageSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
             Text(
                 text = stringResource(R.string.settings_default_language),
                 color = colors.foreground,
@@ -257,7 +263,7 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .heightIn(max = 480.dp),
+                    .heightIn(max = 360.dp),
                 verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S3),
             ) {
                 for (lang in AppLanguage.Supported) {
@@ -299,7 +305,10 @@ fun SettingsScreen(
     }
 
     if (showOfflineSheet) {
-        AppBottomSheet(onDismissRequest = { showOfflineSheet = false }) {
+        AppBottomSheet(
+            onDismissRequest = { showOfflineSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
             Text(
                 text = stringResource(R.string.settings_offline_packs),
                 color = colors.foreground,
@@ -335,8 +344,9 @@ fun SettingsScreen(
             }
             Column(
                 modifier = Modifier
+                    .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
-                    .heightIn(max = 480.dp)
+                    .heightIn(max = 360.dp)
                     .padding(top = DesignTokens.Spacing.S3),
             ) {
                 for (lang in AppLanguage.Supported) {

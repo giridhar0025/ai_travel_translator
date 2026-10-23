@@ -80,6 +80,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
@@ -551,6 +552,8 @@ private fun EmptyChatState(
     onSuggestion: (String) -> Unit,
 ) {
     val colors = AppTheme.colors
+    val fontScale = LocalDensity.current.fontScale
+    val compact = fontScale >= 1.3f
     val suggestions = listOf(
         stringResource(R.string.chat_suggestion_train),
         stringResource(R.string.chat_suggestion_allergy),
@@ -559,24 +562,28 @@ private fun EmptyChatState(
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.S4),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compact) DesignTokens.Spacing.S2 else DesignTokens.Spacing.S4,
+            ),
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = DesignTokens.Spacing.S6, vertical = DesignTokens.Spacing.S6),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(colors.primaryLight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ChatBubbleOutline,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(44.dp),
-                )
+            if (!compact) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(colors.primaryLight),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(44.dp),
+                    )
+                }
             }
             Text(
                 text = stringResource(R.string.chat_empty_title),

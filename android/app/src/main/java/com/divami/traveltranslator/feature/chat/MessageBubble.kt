@@ -285,24 +285,24 @@ private fun PlayChip(
             PlaybackState.Preparing -> CircularProgressIndicator(
                 modifier = Modifier.size(16.dp),
                 strokeWidth = 2.dp,
-                color = colors.primary,
+                color = colors.onPrimary,
             )
             PlaybackState.Playing -> Icon(
                 imageVector = Icons.Outlined.Stop,
                 contentDescription = null,
-                tint = colors.primary,
+                tint = colors.onPrimary,
                 modifier = Modifier.size(16.dp),
             )
             PlaybackState.Idle -> Icon(
                 imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                 contentDescription = null,
-                tint = colors.primary,
+                tint = colors.onPrimary,
                 modifier = Modifier.size(16.dp),
             )
         }
         Text(
             text = label,
-            color = colors.primary,
+            color = colors.onPrimary,
             fontSize = DesignTokens.Typography.Size.Sm,
             fontWeight = FontWeight.Medium,
         )
