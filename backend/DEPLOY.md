@@ -63,9 +63,10 @@ billed account and a public URL, so they're yours to execute.
    | `CORS_ALLOWED_ORIGINS` | leave empty for v1 (mobile clients don't need it) |
    | `PORT` | Railway sets this automatically — don't override |
 
-   Generated for this deploy (use it or roll your own):
-   ```
-   APP_JWT_SECRET=ab89d63a7d84bf45e92f35a06960507865a14f06415fecf72d07251247b6131e
+   Generate a fresh secret on your machine and paste it into the dashboard.
+   Do not commit the generated value:
+   ```bash
+   openssl rand -hex 32
    ```
 
 3. **Networking → Generate Domain** to mint a public URL. Copy it.

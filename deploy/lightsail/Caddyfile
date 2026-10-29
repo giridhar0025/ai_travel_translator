@@ -1,0 +1,11 @@
+{$API_DOMAIN} {
+	reverse_proxy api:8000 {
+		# Required for /api/v1/translate/stream Server-Sent Events.
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
