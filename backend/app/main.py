@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,12 +17,16 @@ from app.routers import translate as translate_router
 from app.routers import tts as tts_router
 
 settings = get_settings()
+IS_VERCEL = bool(os.getenv("VERCEL"))
 
 app = FastAPI(
     title="Travel Translator API",
     version="0.1.0",
     description="Backend for the Travel Translator AI mobile apps.",
-    docs_url="/docs",
+    # Vercel routes only /api/* to the Python function by default. Keep local
+    # Docker/Railway docs at /docs and expose Vercel docs under /api/docs.
+    docs_url="/api/docs" if IS_VERCEL else "/docs",
+    openapi_url="/api/openapi.json" if IS_VERCEL else "/openapi.json",
     redoc_url=None,
 )
 
@@ -49,5 +55,6 @@ app.include_router(recents_router.router, prefix=API_PREFIX)
 
 
 @app.get("/health", tags=["meta"])
+@app.get("/api/health", tags=["meta"], include_in_schema=False)
 def health() -> dict[str, str]:
     return {"status": "ok"}

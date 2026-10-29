@@ -1,4 +1,5 @@
 import json
+import os
 from collections.abc import AsyncIterator
 from typing import Annotated
 
@@ -72,14 +73,25 @@ async def translate(
             detail=f"translation provider failed: {e}",
         ) from e
 
-    background_tasks.add_task(
-        insert_recent,
-        current_user.id,
-        body.source,
-        body.target,
-        body.text,
-        result.translation,
-    )
+    if os.getenv("VERCEL"):
+        # Vercel may freeze the function as soon as the response is sent.
+        # Record the recent inline so history is durable on serverless.
+        await insert_recent(
+            current_user.id,
+            body.source,
+            body.target,
+            body.text,
+            result.translation,
+        )
+    else:
+        background_tasks.add_task(
+            insert_recent,
+            current_user.id,
+            body.source,
+            body.target,
+            body.text,
+            result.translation,
+        )
     return TranslateResultSchema(
         translation=result.translation,
         pronunciation=result.pronunciation,

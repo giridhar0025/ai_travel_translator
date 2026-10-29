@@ -82,3 +82,6 @@ exclude_lines = [
 python_version = "3.11"
 strict = true
 exclude = ["alembic/versions", "tests"]
+
+[tool.vercel]
+entrypoint = "app.main:app"

@@ -1,4 +1,5 @@
 import io
+import os
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -11,7 +12,9 @@ from app.services.stt import STTService, get_stt_service
 
 router = APIRouter(prefix="/stt", tags=["stt"])
 
-MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+# Vercel Functions cap request bodies at 4.5 MB, so production sets this to
+# 4 MB. Docker/Railway retain the 10 MB default.
+MAX_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))
 MAX_DURATION_SECONDS = 30.0
 
 # Mobile clients can record in any of these — we don't trans-encode, Whisper handles it.
