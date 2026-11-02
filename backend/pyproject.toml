@@ -17,7 +17,9 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0",
     "python-multipart>=0.0.20",
     "epitran>=1.25.1",
-    "librosa>=0.10.2",
+    # `librosa` is optional: it powers the "slow" TTS time-stretch but pulls
+    # numba/llvmlite/scipy, which pushes the Vercel function bundle over its
+    # size limit. TTS degrades to normal speed when it is absent.
     "soundfile>=0.12.1",
     "numpy>=1.26.0,<2.2",
 ]

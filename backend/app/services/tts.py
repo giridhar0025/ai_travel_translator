@@ -92,8 +92,14 @@ class TTSService:
 
     @staticmethod
     def _time_stretch(wav_bytes: bytes, rate: float) -> bytes:
-        import librosa
-        import soundfile as sf
+        try:
+            import librosa
+            import soundfile as sf
+        except ImportError:
+            # `librosa` is not installed in the Vercel bundle (its numba /
+            # llvmlite / scipy tree alone exceeds the function size limit).
+            # Serve the normal-speed audio instead of failing the request.
+            return wav_bytes
 
         y, sr = sf.read(io.BytesIO(wav_bytes), dtype="float32", always_2d=False)
         if y.ndim > 1:

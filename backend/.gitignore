@@ -15,3 +15,5 @@ build/
 .vscode/
 *.db
 *.sqlite
+.vercel
+.env*

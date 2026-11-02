@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,11 +29,28 @@ class Settings(BaseSettings):
         # engine needs the explicit `postgresql+asyncpg://` driver. Normalize
         # both `postgres://` and the bare `postgresql://` so deploys work
         # without anyone hand-editing the env var.
-        if isinstance(v, str):
-            if v.startswith("postgres://"):
-                return "postgresql+asyncpg://" + v.removeprefix("postgres://")
-            if v.startswith("postgresql://") and "+" not in v.split("://", 1)[0]:
-                return "postgresql+asyncpg://" + v.removeprefix("postgresql://")
+        if not isinstance(v, str):
+            return v
+        if v.startswith("postgres://"):
+            v = "postgresql+asyncpg://" + v.removeprefix("postgres://")
+        elif v.startswith("postgresql://") and "+" not in v.split("://", 1)[0]:
+            v = "postgresql+asyncpg://" + v.removeprefix("postgresql://")
+
+        # Neon and some other managed providers append libpq-only options such
+        # as `sslmode` and `channel_binding`. SQLAlchemy forwards unknown query
+        # params to asyncpg as keyword arguments, and asyncpg rejects
+        # `sslmode`. It negotiates TLS by default, so drop those params instead
+        # of failing at connect time.
+        parts = urlsplit(v)
+        if parts.query:
+            query = [
+                (key, value)
+                for key, value in parse_qsl(parts.query, keep_blank_values=True)
+                if key.lower() not in {"sslmode", "channel_binding"}
+            ]
+            v = urlunsplit(
+                (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+            )
         return v
 
     # Firebase
