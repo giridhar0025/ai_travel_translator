@@ -10,7 +10,7 @@ UI — can't be automated); 🤖 are done/preparable by tooling.
 - `versionCode = 1`, `versionName = "0.1.0"`.
   ⚠️ Every subsequent upload must **increment `versionCode`** in
   `app/build.gradle.kts` (Play rejects duplicates).
-- Points at the deployed backend `https://api-production-4cd7.up.railway.app`.
+- Points at the deployed backend `https://travel-translator-api.vercel.app`.
 - ⚠️ **Auth caveat:** this build is **guest-only** (client `FIREBASE_*` keys are
   blank in `local.properties`). Email/Google sign-in won't work in the shipped
   build until you add those keys and rebuild. Fine for internal testing.

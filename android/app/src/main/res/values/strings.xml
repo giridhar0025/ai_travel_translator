@@ -82,6 +82,7 @@
     <string name="phrases_favorite">Add to favorites</string>
     <string name="phrases_unfavorite">Remove from favorites</string>
     <string name="phrases_show">Show phrase</string>
+    <string name="phrases_empty">No phrases available yet.</string>
 
     <!-- History -->
     <string name="history_title">History</string>

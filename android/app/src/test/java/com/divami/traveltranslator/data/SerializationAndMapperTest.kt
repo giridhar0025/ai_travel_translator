@@ -2,7 +2,10 @@ package com.divami.traveltranslator.data
 
 import com.divami.traveltranslator.data.remote.dto.AuthResponseDto
 import com.divami.traveltranslator.data.remote.dto.ConversationDto
+import com.divami.traveltranslator.data.remote.dto.FavoriteDto
 import com.divami.traveltranslator.data.remote.dto.LanguageDto
+import com.divami.traveltranslator.data.remote.dto.PhraseCategoryDto
+import com.divami.traveltranslator.data.remote.dto.PhraseWithTranslationDto
 import com.divami.traveltranslator.data.remote.dto.TranslateResultDto
 import com.divami.traveltranslator.data.remote.dto.toDomain
 import com.divami.traveltranslator.data.remote.dto.toInstant
@@ -97,5 +100,42 @@ class SerializationAndMapperTest {
         assertTrue("keeps set field as snake_case", encoded.contains("\"default_language\":\"hi\""))
         assertTrue("omits null playback_speed", !encoded.contains("playback_speed"))
         assertNull("null stays null", dto.offlineEnabled)
+    }
+
+    @Test
+    fun `decodes phrase category and translated phrase payloads`() {
+        val categoryPayload =
+            """{"slug":"restaurants","name":"Restaurants","icon":"🍴","color":"#F59E0B","sort_order":1}"""
+        val category = json.decodeFromString(PhraseCategoryDto.serializer(), categoryPayload).toDomain()
+        assertEquals("restaurants", category.slug)
+        assertEquals("Restaurants", category.name)
+        assertEquals("🍴", category.icon)
+        assertEquals(1, category.sortOrder)
+
+        val phrasePayload = """
+            {"id":"fbc75eb1-db27-4d96-8465-a5f669508ec1","category_slug":"restaurants",
+             "source_lang":"en","source_text":"Table for two, please","target_lang":"hi",
+             "translation":"दो लोगों के लिए एक टेबल, कृपया।","pronunciation":"do loɡon","sort_order":1}
+        """.trimIndent()
+        val phrase = json.decodeFromString(PhraseWithTranslationDto.serializer(), phrasePayload).toDomain()
+        assertEquals("restaurants", phrase.categorySlug)
+        assertEquals("Table for two, please", phrase.sourceText)
+        assertEquals("hi", phrase.targetLang)
+        assertEquals("दो लोगों के लिए एक टेबल, कृपया।", phrase.translation)
+    }
+
+    @Test
+    fun `decodes favorite payload and keeps phrase reference id`() {
+        val payload = """
+            {"id":"474678b8-0605-40f5-b40a-3bb0a3711ab1","user_id":"919b2a43",
+             "kind":"phrase","ref_id":"fbc75eb1-db27-4d96-8465-a5f669508ec1",
+             "source_lang":"en","target_lang":"hi","created_at":"2026-11-02T07:52:55Z"}
+        """.trimIndent()
+        val favorite = json.decodeFromString(FavoriteDto.serializer(), payload).toDomain()
+        assertEquals("phrase", favorite.kind)
+        assertEquals("fbc75eb1-db27-4d96-8465-a5f669508ec1", favorite.refId)
+        assertEquals("en", favorite.sourceLang)
+        assertEquals("hi", favorite.targetLang)
+        assertTrue(favorite.createdAt.isAfter(Instant.EPOCH))
     }
 }

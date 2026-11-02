@@ -38,6 +38,7 @@ fun MainScaffold(
     // Read at the root so reading IME state can't feed back into imePadding.
     val imeVisible = LocalImeVisible.current
     val chatViewModel: ChatViewModel = hiltViewModel()
+    val chatState by chatViewModel.state.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize().background(colors.background)) {
         Scaffold(
@@ -73,6 +74,7 @@ fun MainScaffold(
                         contentPadding = screenPadding,
                     )
                     AppTab.Phrases -> QuickPhrasesScreen(
+                        targetLanguageCode = chatState.targetLanguage.code,
                         onPhraseSelect = { phrase ->
                             chatViewModel.onInputChange(phrase)
                             selected = AppTab.Chat

@@ -5,7 +5,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.divami.traveltranslator.domain.model.Account
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -38,10 +37,6 @@ class SessionStore @Inject constructor(
 ) {
     val session: Flow<Session> = dataStore.data.map { it.toSession() }
 
-    /** Phrasebook favorites, kept on-device so they work without an account. */
-    val phraseFavorites: Flow<Set<String>> =
-        dataStore.data.map { prefs -> prefs[KEY_PHRASE_FAVORITES] ?: emptySet() }
-
     /** Blocking read for the OkHttp interceptor. DataStore caches in memory, so
      *  after the first read this is effectively free and never touches disk. */
     fun blockingToken(): String? = runBlocking { dataStore.data.first()[KEY_TOKEN] }
@@ -69,14 +64,6 @@ class SessionStore @Inject constructor(
      *  chat can honor the onboarding/settings choice instantly and offline. */
     suspend fun setDefaultLanguage(code: String) {
         dataStore.edit { it[KEY_DEFAULT_LANGUAGE] = code }
-    }
-
-    suspend fun setPhraseFavorite(phrase: String, favorite: Boolean) {
-        dataStore.edit { prefs ->
-            val current = prefs[KEY_PHRASE_FAVORITES]?.toMutableSet() ?: mutableSetOf()
-            if (favorite) current.add(phrase) else current.remove(phrase)
-            prefs[KEY_PHRASE_FAVORITES] = current
-        }
     }
 
     /** Clears the token + profile but keeps first-run flags (logout ≠ reinstall). */
@@ -128,6 +115,5 @@ class SessionStore @Inject constructor(
         val KEY_HAS_SEEN_WELCOME = booleanPreferencesKey("has_seen_welcome")
         val KEY_HAS_ONBOARDED = booleanPreferencesKey("has_onboarded")
         val KEY_DEFAULT_LANGUAGE = stringPreferencesKey("default_language")
-        val KEY_PHRASE_FAVORITES = stringSetPreferencesKey("phrase_favorites")
     }
 }
