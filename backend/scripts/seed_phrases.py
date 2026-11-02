@@ -79,6 +79,13 @@ CATEGORIES: list[dict[str, object]] = [
         "color": "#EF4444",
         "sort_order": 5,
     },
+    {
+        "slug": "medical",
+        "name": "Medical",
+        "icon": "🏥",
+        "color": "#0EA5E9",
+        "sort_order": 6,
+    },
 ]
 
 PHRASES: dict[str, list[str]] = {
@@ -121,6 +128,15 @@ PHRASES: dict[str, list[str]] = {
         "I lost my passport",
         "I'm hurt",
         "Is there a pharmacy nearby?",
+    ],
+    "medical": [
+        "I need a doctor",
+        "Where is the pharmacy?",
+        "I'm allergic to peanuts",
+        "I have a medical condition",
+        "I need medicine",
+        "I am deaf or hard of hearing",
+        "Please speak slowly",
     ],
 }
 
